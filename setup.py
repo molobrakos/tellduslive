@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name="tellduslive",
-      version="0.1.4",
+      version="0.1.5",
       description="Communicate with Telldus Live",
       url="https://github.com/molobrakos/tellduslive",
       license="",
