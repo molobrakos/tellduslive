@@ -30,7 +30,7 @@ STOP = 512
 RGBW = 1024
 THERMOSTAT = 2048
 
-# Supported by this client
+# Methods supported by this client
 SUPPORTED_METHODS = (
     TURNON |
     TURNOFF |
@@ -63,9 +63,7 @@ API_METHODS = {
     STOP: 'device/stop',
 }
 
-
-# sensor types
-
+# Sensor types
 TEMPERATURE = 'temperature',
 HUMIDITY = 'humidity',
 RAINRATE = 'rrate',
@@ -322,9 +320,9 @@ class Device:
         """Return value of sensor item."""
         (name, scale) = item_id
         return next((
-            cand['value'] for cand in self.data
-            if (cand['name'] == name and
-                cand['scale'] == scale)), None)
+            item['value'] for item in self.data
+            if (item['name'] == name and
+                item['scale'] == scale)), None)
 
 
 def main():
