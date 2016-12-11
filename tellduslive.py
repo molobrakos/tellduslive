@@ -157,19 +157,21 @@ class Client:
         collect(self.request_devices())
         collect(self.request_sensors())
 
+    def get_device(self, device_id):
+        if 'data' in self.device(device_id):
+            return Sensor(self, device_id)
+        else:
+            return Device(self, device_id)
+
     @property
     def devices(self):
         """Request representations of all devices."""
-        for device_id, device in self._state.items():
-            if 'data' in device:
-                yield Sensor(self, device_id)
-            else:
-                yield Device(self, device_id)
+        return (self.get_device(device_id) for device_id in self.device_ids)
 
     @property
     def device_ids(self):
         """List of known device ids."""
-        return self.devices.keys()
+        return self._state.keys()
 
 
 class BaseDevice:
