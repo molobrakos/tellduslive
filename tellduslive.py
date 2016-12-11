@@ -181,6 +181,10 @@ class BaseDevice:
         self._device_id = device_id
 
     @property
+    def is_sensor(self):
+        return False
+
+    @property
     def device(self):
         """Return the raw representation of the device."""
         return self._client.device(self.device_id)
@@ -291,6 +295,10 @@ class Device(BaseDevice):
 
 class Sensor(BaseDevice):
     """Tellduslive sensor."""
+
+    @property
+    def is_sensor(self):
+        return True
 
     def __str__(self):
         """String representation."""
