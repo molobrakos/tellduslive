@@ -151,7 +151,8 @@ class Client:
         def collect(devices):
             """Update local state."""
             self._state.update({device['id']: device
-                                for device in devices if device['name']})
+                                for device in devices
+                                if device['name']})
 
         collect(self.request_devices())
         collect(self.request_sensors())
@@ -200,7 +201,7 @@ class Device(BaseDevice):
 
     def __str__(self):
         """String representation."""
-        return "%s@%s:%s(%s:%s)(%s)" % (
+        return u"%s@%s:%s(%s:%s)(%s)" % (
             "Device",
             self.device_id,
             self.name or UNNAMED_DEVICE,
@@ -295,11 +296,11 @@ class Sensor(BaseDevice):
         """String representation."""
         items = ",".join("%s=%s" % (d.name, d.value)
                          for d in self.data_items)
-        return ("%s@%s:%s(%s)" % (
+        return "%s@%s:%s(%s)" % (
             "Sensor",
             self.device_id,
             self.name or UNNAMED_DEVICE,
-            items)).encode('utf-8')
+            items)
 
     @property
     def data(self):
@@ -325,12 +326,12 @@ class DataItem:
 
     def __str__(self):
         """String representaion."""
-        return ("%s@%s:%s(%s=%s)" % (
+        return "%s@%s:%s(%s=%s)" % (
             "DataItem",
             self.sensor.device_id,
             self.sensor.name or UNNAMED_DEVICE,
             self.name or UNNAMED_DEVICE,
-            self.value)).encode('utf-8')
+            self.value)
 
     @property
     def device_id(self):
