@@ -305,12 +305,12 @@ class Device:
         """Return data items for sensor."""
         return [DataItem(item['name'], item['scale']) for item in self.data]
 
-    def value(self, item):
+    def value(self, name, scale):
         """Return value of sensor item."""
         return next((
             cand['value'] for cand in self.data
-            if (cand['name'] == item.name and
-                cand['scale'] == item.scale)), None)
+            if (cand['name'] == name and
+                cand['scale'] == scale)), None)
 
 
 class DataItem:
