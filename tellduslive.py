@@ -157,16 +157,10 @@ class Client:
         collect(self.request_devices())
         collect(self.request_sensors())
 
-    def get_device(self, device_id):
-        if 'data' in self.device(device_id):
-            return Sensor(self, device_id)
-        else:
-            return Device(self, device_id)
-
     @property
     def devices(self):
         """Request representations of all devices."""
-        return (self.get_device(device_id) for device_id in self.device_ids)
+        return (Device(self, device_id) for device_id in self.device_ids)
 
     @property
     def device_ids(self):
@@ -174,7 +168,7 @@ class Client:
         return self._state.keys()
 
 
-class BaseDevice:
+class Device:
     """Tellduslive device."""
 
     def __init__(self, client, device_id):
@@ -182,9 +176,25 @@ class BaseDevice:
         self._client = client
         self._device_id = device_id
 
-    @property
-    def is_sensor(self):
-        return False
+    def __str__(self):
+        """String representation."""
+        if self.is_sensor:
+            items = ",".join("%s=%s" % (item.name,
+                                        self.value(item))
+                             for item in self.items)
+            return "%s@%s:%s(%s)" % (
+                "Sensor",
+                self.device_id,
+                self.name or UNNAMED_DEVICE,
+                items)
+        else:
+            return u"%s@%s:%s(%s:%s)(%s)" % (
+                "Device",
+                self.device_id,
+                self.name or UNNAMED_DEVICE,
+                self.str_methods(self.state),
+                self.statevalue,
+                self.str_methods(self.methods))
 
     @property
     def device(self):
@@ -200,20 +210,6 @@ class BaseDevice:
     def name(self):
         """Name of device."""
         return self.device['name']
-
-
-class Device(BaseDevice):
-    """Tellduslive device."""
-
-    def __str__(self):
-        """String representation."""
-        return u"%s@%s:%s(%s:%s)(%s)" % (
-            "Device",
-            self.device_id,
-            self.name or UNNAMED_DEVICE,
-            self.str_methods(self.state),
-            self.statevalue,
-            self.str_methods(self.methods))
 
     @staticmethod
     def str_methods(val):
@@ -231,6 +227,10 @@ class Device(BaseDevice):
         if self._client.execute(api_method, **params):
             self.device['state'] = command
             return True
+
+    @property
+    def is_sensor(self):
+        return 'data' in self.device
 
     @property
     def state(self):
@@ -294,89 +294,28 @@ class Device(BaseDevice):
         """Stop device."""
         return self._execute(STOP)
 
-
-class Sensor(BaseDevice):
-    """Tellduslive sensor."""
-
-    @property
-    def is_sensor(self):
-        return True
-
-    def __str__(self):
-        """String representation."""
-        items = ",".join("%s=%s" % (d.name, d.value)
-                         for d in self.data_items)
-        return "%s@%s:%s(%s)" % (
-            "Sensor",
-            self.device_id,
-            self.name or UNNAMED_DEVICE,
-            items)
-
     @property
     def data(self):
         """Return data field."""
         return self.device['data']
 
     @property
-    def data_items(self):
+    def items(self):
         """Return data items for sensor."""
-        return [DataItem(self._client, (self._device_id,
-                                        item['name'],
-                                        item['scale']))
-                for item in self.data]
+        return [DataItem(item['name'], item['scale']) for item in self.data]
+
+    def value(self, item):
+        """Return value of sensor item."""
+        return next((
+            cand['value'] for cand in self.data
+            if (cand['name'] == item.name and
+                cand['scale'] == item.scale)), None)
 
 
 class DataItem:
-    """A Tellduslive Sensor data item."""
-
-    def __init__(self, client, item_id):
-        """Initialize."""
-        self._client = client
-        self._item_id = item_id
-
-    def __str__(self):
-        """String representaion."""
-        return "%s@%s:%s(%s=%s)" % (
-            "DataItem",
-            self.sensor.device_id,
-            self.sensor.name or UNNAMED_DEVICE,
-            self.name or UNNAMED_DEVICE,
-            self.value)
-
-    @property
-    def device_id(self):
-        """Return id of corresponding sensor."""
-        return self._item_id[0]
-
-    @property
-    def name(self):
-        """Return name."""
-        return self._item_id[1]
-
-    @property
-    def scale(self):
-        """Return scale."""
-        return self._item_id[2]
-
-    @property
-    def item_id(self):
-        """Unique identifier for a data item."""
-        return self._item_id
-
-    @property
-    def sensor(self):
-        """Return corresponding sensor."""
-        return Sensor(self._client, self.device_id)
-
-    @property
-    def value(self):
-        """Return value of sensordataitem."""
-        return next((
-            item['value']
-            for item in self.sensor.data
-            if (item['name'] == self.name and
-                item['scale'] == self.scale)), None)
-
+    def __init__(self, name, scale):
+        self.name = name
+        self.scale = scale
 
 def main():
     """Dump configured devices and sensors."""
@@ -399,7 +338,6 @@ def main():
           "-------")
     for device in client.devices:
         print(device)
-
 
 if __name__ == '__main__':
     main()
