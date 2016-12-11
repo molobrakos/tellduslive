@@ -179,7 +179,7 @@ class Device:
     def __str__(self):
         """String representation."""
         if self.is_sensor:
-            items = ",".join("%s=%s" % (item.name,
+            items = ",".join("%s=%s" % (self.item_name(item),
                                         self.value(item))
                              for item in self.items)
             return "%s@%s:%s(%s)" % (
@@ -303,22 +303,18 @@ class Device:
     @property
     def items(self):
         """Return data items for sensor."""
-        return [DataItem(item['name'], item['scale']) for item in self.data]
+        return [(item['name'], item['scale']) for item in self.data]
 
-    def value(self, name, scale):
+    def item_name(self, item_id):
+        return item_id[0]
+
+    def value(self, item_id):
         """Return value of sensor item."""
+        (name, scale) = item_id
         return next((
             cand['value'] for cand in self.data
             if (cand['name'] == name and
                 cand['scale'] == scale)), None)
-
-
-class DataItem:
-    """A sensor data item."""
-    # pylint: disable=too-few-public-methods
-    def __init__(self, name, scale):
-        self.name = name
-        self.scale = scale
 
 
 def main():
