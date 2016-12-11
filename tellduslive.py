@@ -246,6 +246,16 @@ class Device:
                 else 0)
 
     @property
+    def battery(self):
+        """Name of device."""
+        return self.device.get('battery')
+
+    @property
+    def last_updated(self):
+        """Name of device."""
+        return self.device.get('lastUpdated')
+
+    @property
     def methods(self):
         """Supported methods by device."""
         return self.device['methods']
