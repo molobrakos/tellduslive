@@ -1,3 +1,4 @@
 .tox
 .credentials.conf
 *.egg-info
+dist
