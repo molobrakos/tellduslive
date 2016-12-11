@@ -230,6 +230,7 @@ class Device:
 
     @property
     def is_sensor(self):
+        """Return true if this is a sensor."""
         return 'data' in self.device
 
     @property
@@ -313,9 +314,12 @@ class Device:
 
 
 class DataItem:
+    """A sensor data item."""
+    # pylint: disable=too-few-public-methods
     def __init__(self, name, scale):
         self.name = name
         self.scale = scale
+
 
 def main():
     """Dump configured devices and sensors."""
@@ -338,6 +342,7 @@ def main():
           "-------")
     for device in client.devices:
         print(device)
+
 
 if __name__ == '__main__':
     main()
