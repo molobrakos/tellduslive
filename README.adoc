@@ -1,0 +1,9 @@
+Example
+
+  >  ./tellduslive.py 
+  Devices
+  -------
+  Sensor@2263701:Basement(temp=8.6,humidity=59)
+  Sensor@2214341:Bathroom(temp=9.5,humidity=47)
+  Sensor@2222911:Outdoors(temp=-1.9)
+  Device@2210326:Livingroom dimmer(TURNOFF:215)(DIM|TURNON|TURNOFF)
