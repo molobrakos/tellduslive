@@ -86,7 +86,6 @@ class Client:
                  private_key,
                  token,
                  token_secret):
-        """Initialize a client."""
         self._session = requests.Session()
         self._session.auth = OAuth1(
             public_key,
@@ -95,7 +94,7 @@ class Client:
             token_secret)
         self._state = {}
 
-    def device(self, device_id):
+    def _device(self, device_id):
         """Return the raw representaion of a device."""
         return self._state[device_id]
 
@@ -155,10 +154,14 @@ class Client:
         collect(self.request_devices())
         collect(self.request_sensors())
 
+    def get_device(self, device_id):
+        """Return a device object."""
+        return Device(self, device_id)
+
     @property
     def devices(self):
         """Request representations of all devices."""
-        return (Device(self, device_id) for device_id in self.device_ids)
+        return (self.get_device(device_id) for device_id in self.device_ids)
 
     @property
     def device_ids(self):
@@ -170,16 +173,12 @@ class Device:
     """Tellduslive device."""
 
     def __init__(self, client, device_id):
-        """Initialize a device."""
         self._client = client
         self._device_id = device_id
 
     def __str__(self):
-        """String representation."""
         if self.is_sensor:
-            items = ",".join("%s=%s" % (self.item_name(item),
-                                        self.value(item))
-                             for item in self.items)
+            items = ",".join(str(item) for item in self.items)
             return "%s@%s:%s(%s)" % (
                 "Sensor",
                 self.device_id,
@@ -194,20 +193,22 @@ class Device:
                 self.statevalue,
                 self.str_methods(self.methods))
 
+    def __getattr__(self, name):
+        if name in ['name', 'state', 'battery',
+                    'lastUpdated', 'methods', 'data']:
+            return self.device.get(name)
+        raise AttributeError(name)
+
     @property
     def device(self):
         """Return the raw representation of the device."""
-        return self._client.device(self.device_id)
+        # pylint: disable=protected-access
+        return self._client._device(self.device_id)
 
     @property
     def device_id(self):
         """Id of device."""
         return self._device_id
-
-    @property
-    def name(self):
-        """Name of device."""
-        return self.device['name']
 
     @staticmethod
     def str_methods(val):
@@ -232,31 +233,11 @@ class Device:
         return 'data' in self.device
 
     @property
-    def state(self):
-        """State of device."""
-        return self.device['state']
-
-    @property
     def statevalue(self):
         """State value of device."""
         return (self.device['statevalue']
                 if self.device['statevalue'] != 'unde'
                 else 0)
-
-    @property
-    def battery(self):
-        """Name of device."""
-        return self.device.get('battery')
-
-    @property
-    def last_updated(self):
-        """Name of device."""
-        return self.device.get('lastUpdated')
-
-    @property
-    def methods(self):
-        """Supported methods by device."""
-        return self.device['methods']
 
     @property
     def is_on(self):
@@ -304,25 +285,30 @@ class Device:
         return self._execute(STOP)
 
     @property
-    def data(self):
-        """Return data field."""
-        return self.device['data']
-
-    @property
     def items(self):
         """Return data items for sensor."""
-        return [(item['name'], item['scale']) for item in self.data]
+        return (Item(item) for item in self.data) if self.data else []
 
-    def item_name(self, item_id):
-        return item_id[0]
-
-    def value(self, item_id):
+    def item(self, name, scale):
         """Return value of sensor item."""
-        (name, scale) = item_id
-        return next((
-            item['value'] for item in self.data
-            if (item['name'] == name and
-                item['scale'] == scale)), None)
+        return Item(next((
+            item for item in self.items
+            if (item.name == name and
+                item.scale == scale)), None))
+
+
+class Item:
+    # pylint: disable=too-few-public-methods, no-member
+    """Reference to a sensor data item."""
+    def __init__(self, data):
+        vars(self).update(data)
+
+    def __str__(self):
+        return "%s=%s" % (self.name, self.value)
+
+    def item_id(self):
+        """Unique identifier of an item."""
+        return (self.name, self.scale)
 
 
 def main():
@@ -346,6 +332,8 @@ def main():
           "-------")
     for device in client.devices:
         print(device)
+        for item in device.items:
+            print(" -", item)
 
 
 if __name__ == '__main__':
