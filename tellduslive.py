@@ -30,7 +30,6 @@ STOP = 512
 RGBW = 1024
 THERMOSTAT = 2048
 
-# Methods supported by this client
 SUPPORTED_METHODS = (
     TURNON |
     TURNOFF |
@@ -39,28 +38,18 @@ SUPPORTED_METHODS = (
     DOWN |
     STOP)
 
-STR_METHODS = {
-    TURNON: "TURNON",
-    TURNOFF: "TURNOFF",
-    BELL: "BELL",
-    TOGGLE: "TOGGLE",
-    DIM: "DIM",
-    LEARN: "LEARN",
-    UP: "UP",
-    DOWN: "DOWN",
-    STOP: "STOP",
-    RGBW: "RGBW",
-    THERMOSTAT: "THERMOSTAT"
-}
-
-# Corresponding API methods
-API_METHODS = {
-    TURNON: 'device/turnOn',
-    TURNOFF: 'device/turnOff',
-    DIM: 'device/dim',
-    UP: 'device/up',
-    DOWN: 'device/down',
-    STOP: 'device/stop',
+METHODS = {
+    TURNON: 'turnOn',
+    TURNOFF: 'turnOff',
+    BELL: 'bell',
+    TOGGLE: 'toggle',
+    DIM: 'dim',
+    LEARN: 'learn',
+    UP: 'up',
+    DOWN: 'down',
+    STOP: 'stop',
+    RGBW: 'rgbw',
+    THERMOSTAT: 'thermostat'
 }
 
 # Sensor types
@@ -189,9 +178,9 @@ class Device:
                 "Device",
                 self.device_id,
                 self.name or UNNAMED_DEVICE,
-                self.str_methods(self.state),
+                self._str_methods(self.state),
                 self.statevalue,
-                self.str_methods(self.methods))
+                self._str_methods(self.methods))
 
     def __getattr__(self, name):
         if name in ['name', 'state', 'battery',
@@ -211,19 +200,20 @@ class Device:
         return self._device_id
 
     @staticmethod
-    def str_methods(val):
+    def _str_methods(val):
         """String representation of methods or state."""
         res = []
-        for method in STR_METHODS:
+        for method in METHODS:
             if val & method:
-                res.append(STR_METHODS[method])
+                res.append(METHODS[method].upper())
         return "|".join(res)
 
     def _execute(self, command, **params):
         """Send command to server and update local state."""
         params.update(id=self._device_id)
-        api_method = API_METHODS[command]
-        if self._client.execute(api_method, **params):
+        # Corresponding API methods
+        method = 'device/%s' % METHODS[command]
+        if self._client.execute(method, **params):
             self.device['state'] = command
             return True
 
