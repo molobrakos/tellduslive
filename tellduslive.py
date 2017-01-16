@@ -143,14 +143,14 @@ class Client:
         collect(self.request_devices())
         collect(self.request_sensors())
 
-    def get_device(self, device_id):
+    def device(self, device_id):
         """Return a device object."""
         return Device(self, device_id)
 
     @property
     def devices(self):
         """Request representations of all devices."""
-        return (self.get_device(device_id) for device_id in self.device_ids)
+        return (self.device(device_id) for device_id in self.device_ids)
 
     @property
     def device_ids(self):
@@ -166,6 +166,12 @@ class Device:
         self._device_id = device_id
 
     def __str__(self):
+        try:
+            return unicode(self).encode('utf-8')
+        except NameError:
+            return self.__unicode__()
+
+    def __unicode__(self):
         if self.is_sensor:
             items = ",".join(str(item) for item in self.items)
             return "%s@%s:%s(%s)" % (
@@ -323,7 +329,7 @@ def main():
     for device in client.devices:
         print(device)
         for item in device.items:
-            print(" -", item)
+            print("- %s" % item)
 
 
 if __name__ == '__main__':
