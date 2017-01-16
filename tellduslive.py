@@ -233,8 +233,9 @@ class Device:
     @property
     def statevalue(self):
         """State value of device."""
-        return (self.device['statevalue']
-                if self.device['statevalue'] != 'unde'
+        return (self.device['statevalue'] if
+                self.device['statevalue'] and
+                self.device['statevalue'] != 'unde'
                 else 0)
 
     @property
@@ -253,7 +254,7 @@ class Device:
         """Return current dim level."""
         try:
             return int(self.statevalue)
-        except ValueError:
+        except (TypeError, ValueError):
             return None
 
     def turn_on(self):
