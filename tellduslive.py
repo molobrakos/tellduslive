@@ -9,6 +9,8 @@ import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1
 
+__version__ = '0.1.13'
+
 _LOGGER = logging.getLogger(__name__)
 
 API_URL = 'https://api.telldus.com/json/'
