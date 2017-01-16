@@ -194,7 +194,7 @@ class Device:
         if name in ['name', 'state', 'battery',
                     'lastUpdated', 'methods', 'data']:
             return self.device.get(name)
-        raise AttributeError(name)
+        return None
 
     @property
     def device(self):
@@ -303,10 +303,6 @@ class SensorItem:
 
     def __str__(self):
         return '%s=%s' % (self.name, self.value)
-
-    def item_id(self):
-        """Unique identifier of an item."""
-        return (self.name, self.scale)
 
 
 def main():
