@@ -4,7 +4,7 @@ from setuptools import setup
 from tellduslive import __version__
 
 setup(name="tellduslive",
-      version=__version__,
+      version='0.2.6',
       description="Communicate with Telldus Live",
       url="https://github.com/molobrakos/tellduslive",
       license="",
