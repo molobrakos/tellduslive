@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from setuptools import setup
-from tellduslive import __version__
 
 setup(name="tellduslive",
       version='0.2.7',
