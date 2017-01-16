@@ -285,24 +285,23 @@ class Device:
     @property
     def items(self):
         """Return data items for sensor."""
-        return (Item(item) for item in self.data) if self.data else []
+        return (SensorItem(item) for item in self.data) if self.data else []
 
     def item(self, name, scale):
         """Return value of sensor item."""
-        return Item(next((
-            item for item in self.items
-            if (item.name == name and
-                item.scale == scale)), None))
+        return next((item for item in self.items
+                     if (item.name == name and
+                         item.scale == scale)), None)
 
 
-class Item:
+class SensorItem:
     # pylint: disable=too-few-public-methods, no-member
     """Reference to a sensor data item."""
     def __init__(self, data):
         vars(self).update(data)
 
     def __str__(self):
-        return "%s=%s" % (self.name, self.value)
+        return '%s=%s' % (self.name, self.value)
 
     def item_id(self):
         """Unique identifier of an item."""
@@ -316,22 +315,22 @@ def main():
     logging.basicConfig(level=logging.INFO)
     try:
         with open(path.join(path.dirname(argv[0]),
-                            ".credentials.conf")) as config:
+                            '.credentials.conf')) as config:
             credentials = dict(
-                x.split(": ")
+                x.split(': ')
                 for x in config.read().strip().splitlines())
     except (IOError, OSError):
-        print("Could not read configuration")
+        print('Could not read configuration')
         exit(-1)
 
     client = Client(**credentials)
     client.update()
-    print("Devices\n"
-          "-------")
+    print('Devices\n'
+          '-------')
     for device in client.devices:
         print(device)
         for item in device.items:
-            print("- %s" % item)
+            print('- %s' % item)
 
 
 if __name__ == '__main__':
