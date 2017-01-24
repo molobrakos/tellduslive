@@ -12,5 +12,4 @@ setup(name="tellduslive",
       install_requires=['requests',
                         'requests_oauthlib'],
       py_modules=["tellduslive"],
-      provides=["tellduslive"],
-)
+      provides=["tellduslive"],)
