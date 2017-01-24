@@ -175,14 +175,14 @@ class Device:
 
     def __unicode__(self):
         if self.is_sensor:
-            items = ",".join(str(item) for item in self.items)
-            return "%s@%s:%s(%s)" % (
+            items = ", ".join(str(item) for item in self.items)
+            return "%s #%s \'%s\' (%s)" % (
                 "Sensor",
                 self.device_id,
                 self.name or UNNAMED_DEVICE,
                 items)
         else:
-            return u"%s@%s:%s(%s:%s)(%s)" % (
+            return u"%s #%s \'%s\' (%s:%s) [%s]" % (
                 "Device",
                 self.device_id,
                 self.name or UNNAMED_DEVICE,
@@ -285,14 +285,18 @@ class Device:
 
     @property
     def items(self):
-        """Return data items for sensor."""
+        """Return sensor items for sensor."""
         return (SensorItem(item) for item in self.data) if self.data else []
 
     def item(self, name, scale):
-        """Return value of sensor item."""
+        """Return sensor item."""
         return next((item for item in self.items
                      if (item.name == name and
                          item.scale == scale)), None)
+
+    def value(self, name, scale):
+        """Return value of sensor item."""
+        return self.item(name, scale).value
 
 
 class SensorItem:
