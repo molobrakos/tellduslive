@@ -106,7 +106,7 @@ class Client:
                 raise IOError(response['error'])
             return response
         except (OSError, IOError) as error:
-            _LOGGER.error('Failed request: %s', error)
+            _LOGGER.warning('Failed request: %s', error)
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
