@@ -87,7 +87,7 @@ class Client:
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
-        return self._state[device_id]
+        return self._state.get(device_id)
 
     def request(self, url, **params):
         """Send a request to the Tellstick Live API."""
@@ -191,10 +191,10 @@ class Device:
                 self._str_methods(self.methods))
 
     def __getattr__(self, name):
-        if name in ['name', 'state', 'battery',
-                    'lastUpdated', 'methods', 'data']:
+        if (self.device and
+            name in ['name', 'state', 'battery',
+                     'lastUpdated', 'methods', 'data']):
             return self.device.get(name)
-        return None
 
     @property
     def device(self):
@@ -234,6 +234,7 @@ class Device:
     def statevalue(self):
         """State value of device."""
         return (self.device['statevalue'] if
+                self.device and
                 self.device['statevalue'] and
                 self.device['statevalue'] != 'unde'
                 else 0)
