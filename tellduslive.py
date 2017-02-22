@@ -14,7 +14,7 @@ __version__ = '0.3.2'
 _LOGGER = logging.getLogger(__name__)
 
 API_URL = 'https://api.telldus.com/json/'
-TIMEOUT = timedelta(seconds=5)
+TIMEOUT = timedelta(seconds=30)
 
 UNNAMED_DEVICE = 'NO NAME'
 
