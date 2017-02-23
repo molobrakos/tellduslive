@@ -9,7 +9,7 @@ import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 _LOGGER = logging.getLogger(__name__)
 
