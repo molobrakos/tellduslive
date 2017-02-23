@@ -198,8 +198,8 @@ class Device:
 
     def __getattr__(self, name):
         if (self.device and
-            name in ['name', 'state', 'battery',
-                     'lastUpdated', 'methods', 'data']):
+                name in ['name', 'state', 'battery',
+                         'lastUpdated', 'methods', 'data']):
             return self.device.get(name)
 
     @property
