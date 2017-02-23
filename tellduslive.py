@@ -122,7 +122,7 @@ class Client:
         res = self.request('devices/list',
                            supportedMethods=SUPPORTED_METHODS,
                            includeIgnored=0)
-        return res.get('device') if res else []
+        return res.get('device') if res else None
 
     def request_sensors(self):
         """Request list of sensors from server."""
@@ -130,7 +130,7 @@ class Client:
                            includeValues=1,
                            includeScale=1,
                            includeIgnored=0)
-        return res.get('sensor') if res else []
+        return res.get('sensor') if res else None
 
     def update(self):
         """Updates all devices and sensors from server."""
@@ -139,11 +139,17 @@ class Client:
         def collect(devices):
             """Update local state."""
             self._state.update({device['id']: device
-                                for device in devices
+                                for device in devices or {}
                                 if device['name']})
 
-        collect(self.request_devices())
-        collect(self.request_sensors())
+        devices = self.request_devices()
+        collect(devices)
+
+        sensors = self.request_sensors()
+        collect(sensors)
+
+        return (devices is not None and
+                sensors is not None)
 
     def device(self, device_id):
         """Return a device object."""
