@@ -9,11 +9,11 @@ import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 
 _LOGGER = logging.getLogger(__name__)
 
-API_URL = 'https://api.telldus.com/json/'
+TELLDUS_LIVE_API_URL = 'https://api.telldus.com/json/'
 TIMEOUT = timedelta(seconds=30)
 
 UNNAMED_DEVICE = 'NO NAME'
@@ -76,14 +76,47 @@ class Client:
                  public_key,
                  private_key,
                  token,
-                 token_secret):
+                 token_secret,
+                 host=None):
+
         self._session = requests.Session()
-        self._session.auth = OAuth1(
-            public_key,
-            private_key,
-            token,
-            token_secret)
+        if host is not None:
+            self._token = token
+            self._session.headers = {"Authorization": "Bearer %s" % token}
+            self._api_url = "http://%s/api/" % host
+        else:
+            self._session.auth = OAuth1(public_key,
+                    private_key, token, token_secret)
+            self._api_url = TELLDUS_LIVE_API_URL
         self._state = {}
+
+    @staticmethod
+    def get_authorize_url(host, app):
+        try:
+            r = requests.put("http://%s/api/token" % host, data={'app': app}).json()
+            return r['authUrl'], r['token']
+        except:
+            """Could not get url and token, return"""
+            return "", ""
+
+    @staticmethod
+    def authorize_local_api(host, token):
+        try:
+            url = "http://%s/api/token?token=%s" % (host, token)
+            request = requests.get(url)
+            data = request.json()
+            return data['token']
+        except:
+            return ""
+
+    def refresh_local_token(self):
+        """Refresh api token"""
+        try:
+            res = self.request('refreshToken')
+            self._token = res['token']
+            return res['expires']
+        except:
+            return
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
@@ -92,7 +125,7 @@ class Client:
     def request(self, url, **params):
         """Send a request to the Tellstick Live API."""
         try:
-            url = urljoin(API_URL, url)
+            url = urljoin(self._api_url, url)
             _LOGGER.debug('Request %s %s', url, params)
             response = self._session.get(url,
                                          params=params,
