@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """Communicate with Telldus Live server."""
 
@@ -81,9 +81,9 @@ class Client:
 
         if host:
             self._session = requests.Session()
-            self._session.headers = {"Authorization": "Bearer %s" % token}
+            self._session.headers = {'Authorization': 'Bearer {}'.format(token)}
             self._token = token
-            self._api_url = "http://%s/api/" % host
+            self._api_url = 'http://{}/api/'.format(host)
         else:
             self._session = OAuth1Session(public_key,
                     private_key, token, token_secret)
@@ -93,7 +93,7 @@ class Client:
     @staticmethod
     def get_authorize_url(host, app):
         try:
-            r = requests.put("http://%s/api/token" % host, data={'app': app}).json()
+            r = requests.put('http://{}/api/token'.format(host), data={'app': app}).json()
             return r['authUrl'], r['token']
         except:
             """Could not get url and token, return"""
@@ -102,7 +102,7 @@ class Client:
     @staticmethod
     def authorize_local_api(host, token):
         try:
-            url = "http://%s/api/token?token=%s" % (host, token)
+            url = 'http://{host}/api/token?token={token}'.format(host=host, token=token)
             request = requests.get(url)
             data = request.json()
             return data['token']
@@ -126,20 +126,20 @@ class Client:
         """Send a request to the Tellstick Live API."""
         try:
             url = urljoin(self._api_url, url)
-            _LOGGER.debug('Request %s %s', url, params)
+            _LOGGER.debug('Request {} {}'.format(url, params))
             response = self._session.get(url,
                                          params=params,
                                          timeout=TIMEOUT.seconds)
             response.raise_for_status()
-            _LOGGER.debug('Response %s %s',
+            _LOGGER.debug('Response {} {}'.format(
                           response.status_code,
-                          response.json())
+                          response.json()))
             response = response.json()
             if 'error' in response:
                 raise IOError(response['error'])
             return response
         except (OSError, IOError) as error:
-            _LOGGER.warning('Failed request: %s', error)
+            _LOGGER.warning('Failed request: {}'.format(error))
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
@@ -207,27 +207,19 @@ class Device:
         self._device_id = device_id
 
     def __str__(self):
-        try:
-            return unicode(self).encode('utf-8')
-        except NameError:
-            return self.__unicode__()
-
-    def __unicode__(self):
         if self.is_sensor:
-            items = ", ".join(str(item) for item in self.items)
-            return "%s #%s \'%s\' (%s)" % (
-                "Sensor",
-                self.device_id,
-                self.name or UNNAMED_DEVICE,
-                items)
+            items = ', '.join(str(item) for item in self.items)
+            return 'Sensor #{id} \'{name}\' ({items})'.format(
+                id=self.device_id,
+                name=self.name or UNNAMED_DEVICE,
+                items=items)
         else:
-            return u"%s #%s \'%s\' (%s:%s) [%s]" % (
-                "Device",
-                self.device_id,
-                self.name or UNNAMED_DEVICE,
-                self._str_methods(self.state),
-                self.statevalue,
-                self._str_methods(self.methods))
+            return 'Device #{id} \'{name}\' ({state}:{value}) [{methods}]'.format(
+                id=self.device_id,
+                name=self.name or UNNAMED_DEVICE,
+                state=self._str_methods(self.state),
+                value=self.statevalue,
+                methods=self._str_methods(self.methods))
 
     def __getattr__(self, name):
         if (self.device and
@@ -259,7 +251,7 @@ class Device:
         """Send command to server and update local state."""
         params.update(id=self._device_id)
         # Corresponding API methods
-        method = 'device/%s' % METHODS[command]
+        method = 'device/{}'.format(METHODS[command])
         if self._client.execute(method, **params):
             self.device['state'] = command
             return True
@@ -346,7 +338,8 @@ class SensorItem:
         vars(self).update(data)
 
     def __str__(self):
-        return '%s=%s' % (self.name, self.value)
+        return '{name}={value}'.format(
+            name=self.name, value=self.value)
 
 
 def main():
@@ -371,7 +364,7 @@ def main():
     for device in client.devices:
         print(device)
         for item in device.items:
-            print('- %s' % item)
+            print('- {}'.format(item))
 
 
 if __name__ == '__main__':
