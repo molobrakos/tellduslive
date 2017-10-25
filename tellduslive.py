@@ -7,7 +7,7 @@ from datetime import timedelta
 
 import requests
 from requests.compat import urljoin
-from requests_oauthlib import OAuth1
+from requests_oauthlib import OAuth1Session
 
 __version__ = '0.4.0'
 
@@ -79,13 +79,13 @@ class Client:
                  token_secret,
                  host=None):
 
-        self._session = requests.Session()
-        if host is not None:
-            self._token = token
+        if host:
+            self._session = requests.Session()
             self._session.headers = {"Authorization": "Bearer %s" % token}
+            self._token = token
             self._api_url = "http://%s/api/" % host
         else:
-            self._session.auth = OAuth1(public_key,
+            self._session = OAuth1Session(public_key,
                     private_key, token, token_secret)
             self._api_url = TELLDUS_LIVE_API_URL
         self._state = {}
