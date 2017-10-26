@@ -10,7 +10,7 @@ from requests import Session
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 _LOGGER = logging.getLogger(__name__)
 
