@@ -16,9 +16,9 @@ _LOGGER = logging.getLogger(__name__)
 
 TELLDUS_LIVE_URL = 'https://api.telldus.com'
 TELLDUS_LIVE_API_URL = urljoin(TELLDUS_LIVE_URL, '/json/')
-TELLDUS_LIVE_REQUEST_TOKEN_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/requestToken')
-TELLDUS_LIVE_AUTHORIZE_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/authorize')
-TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/accessToken')
+TELLDUS_LIVE_REQUEST_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/requestToken')
+TELLDUS_LIVE_AUTHORIZE_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/authorize')
+TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/accessToken')
 
 TELLDUS_LOCAL_API_URL = 'http://{host}/api/token'
 
