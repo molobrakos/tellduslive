@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 
 import requests
+from requests import Session
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 
@@ -13,8 +14,15 @@ __version__ = '0.4.0'
 
 _LOGGER = logging.getLogger(__name__)
 
-TELLDUS_LIVE_API_URL = 'https://api.telldus.com/json/'
-TIMEOUT = timedelta(seconds=30)
+TELLDUS_LIVE_URL = 'https://api.telldus.com'
+TELLDUS_LIVE_API_URL = urljoin(TELLDUS_LIVE_URL, '/json/')
+TELLDUS_LIVE_REQUEST_TOKEN_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/requestToken')
+TELLDUS_LIVE_AUTHORIZE_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/authorize')
+TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_API_URL, '/oauth/accessToken')
+
+TELLDUS_LOCAL_API_URL = 'http://{host}/api/token'
+
+TIMEOUT = timedelta(seconds=10)
 
 UNNAMED_DEVICE = 'NO NAME'
 
@@ -69,63 +77,82 @@ DEW_POINT = 'dew',  # ?
 BAROMETRIC_PRESSURE = '?',
 
 
+class LocalAPISession(Session):
+
+    def __init__(self, host, app):
+        self.url = TELLDUS_LOCAL_API_URL.format(host=host)
+        self._host = host
+        self._app = app
+
+    def get_authorize_url(self):
+        try:
+            r = self.put(self._url, data={'app': app}, timeout=TIMEOUT.seconds).json()
+            self.request_token = r['token']
+            return r['authUrl']
+        except:
+            pass
+
+    def authorize(self):
+        try:
+            r = requests.get(url, params=dict(token=request_token), timeout=TIMEOUT.seconds).json()
+            self.access_token = r['token']
+            self.headers = {'Authorization': 'Bearer {}'.format(access_token)}
+            return True
+        except:
+            pass
+
+    def refresh_access_token(self):
+        """Refresh api token"""
+        # FIXME: store token TTL somewhere. Call refresh periodically.
+        try:
+            res = self.request('refreshToken')
+            self.access_token = res['token']
+            return res['expires']
+        except:
+            pass
+
+
+class LiveSession(OAuth1Session):
+
+    def __init__(self, public_key, private_key, token=None, token_secret=None):
+        super().__init__(public_key, private_key, token, token_secret)
+        self.url = TELLDUS_LIVE_API_URL
+
+    def get_authorize_url(self):
+        _LOGGER.debug('Fetching request token')
+        self.fetch_request_token(TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
+        _LOGGER.debug('Got request token')
+        return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
+
+    def authorize(self):
+        try:
+            _LOGGER.debug('Fetching access token')
+            token = self._fetch_token(TELLDUS_LIVE_ACCESS_TOKEN_URL, timeout=TIMEOUT.seconds)
+            _LOGGER.debug('Got access token')
+            self.access_token = token['oauth_token']
+            self.access_token_secret = token['oauth_token_secret']
+            _LOGGER.debug('Authorized: %s', self.authorized)
+            return self.authorized
+        except TokenRequestDenied:
+            return False
+
+
 class Client:
     """Tellduslive client."""
 
     def __init__(self,
-                 public_key,
-                 private_key,
-                 token,
-                 token_secret,
-                 host=None):
-
-        if host:
-            self._session = requests.Session()
-            self._session.headers = {'Authorization': 'Bearer {}'.format(token)}
-            self._token = token
-            self._api_url = 'http://{}/api/'.format(host)
-        else:
-            self._session = OAuth1Session(public_key,
-                    private_key, token, token_secret)
-            self._api_url = TELLDUS_LIVE_API_URL
+                 session):
+        self._session = session
         self._state = {}
-
-    @staticmethod
-    def get_authorize_url(host, app):
-        try:
-            r = requests.put('http://{}/api/token'.format(host), data={'app': app}).json()
-            return r['authUrl'], r['token']
-        except:
-            """Could not get url and token, return"""
-            return "", ""
-
-    @staticmethod
-    def authorize_local_api(host, token):
-        try:
-            url = 'http://{host}/api/token?token={token}'.format(host=host, token=token)
-            request = requests.get(url)
-            data = request.json()
-            return data['token']
-        except:
-            return ""
-
-    def refresh_local_token(self):
-        """Refresh api token"""
-        try:
-            res = self.request('refreshToken')
-            self._token = res['token']
-            return res['expires']
-        except:
-            return
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
         return self._state.get(device_id)
 
-    def request(self, url, **params):
+    def request(self, path, **params):
         """Send a request to the Tellstick Live API."""
         try:
-            url = urljoin(self._api_url, url)
+            url = urljoin(self._session.url, path)
             _LOGGER.debug('Request {} {}'.format(url, params))
             response = self._session.get(url,
                                          params=params,
@@ -357,7 +384,7 @@ def main():
         print('Could not read configuration')
         exit(-1)
 
-    client = Client(**credentials)
+    client = Client(LiveSession(**credentials))
     client.update()
     print('Devices\n'
           '-------')
