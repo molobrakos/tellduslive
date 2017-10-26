@@ -96,7 +96,7 @@ class LocalAPISession(Session):
         try:
             r = requests.get(url, params=dict(token=request_token), timeout=TIMEOUT.seconds).json()
             self.access_token = r['token']
-            self.headers = {'Authorization': 'Bearer {}'.format(access_token)}
+            self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
             return True
         except:
             pass
@@ -114,9 +114,11 @@ class LocalAPISession(Session):
 
 class LiveSession(OAuth1Session):
 
-    def __init__(self, public_key, private_key, token=None, token_secret=None):
+    def __init__(self, public_key, private_key, token=None, token_secret=None, application=None):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
+        if application:
+            self.headers.update({'X-Application': application})
 
     def get_authorize_url(self):
         _LOGGER.debug('Fetching request token')
