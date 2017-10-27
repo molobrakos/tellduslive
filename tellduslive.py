@@ -79,14 +79,14 @@ BAROMETRIC_PRESSURE = '?',
 
 class LocalAPISession(Session):
 
-    def __init__(self, host, app):
+    def __init__(self, host, application):
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
-        self._app = app
+        self._application = application
 
     def get_authorize_url(self):
         try:
-            r = self.put(self._url, data={'app': app}, timeout=TIMEOUT.seconds).json()
+            r = self.put(self._url, data={'app': application}, timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
             return r['authUrl']
         except:
