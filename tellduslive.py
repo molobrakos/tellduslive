@@ -77,6 +77,14 @@ DEW_POINT = 'dew',  # ?
 BAROMETRIC_PRESSURE = '?',
 
 
+SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
+
+
+def supports_local_api(device):
+    return any(dev in device
+               for dev in SUPPORTS_LOCAL_API)
+
+
 class LocalAPISession(Session):
 
     def __init__(self, host, application):
