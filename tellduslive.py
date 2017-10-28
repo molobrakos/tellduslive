@@ -84,7 +84,8 @@ class LocalAPISession(Session):
         self._host = host
         self._application = application
 
-    def get_authorize_url(self):
+    @property
+    def authorize_url(self):
         try:
             r = self.put(self._url, data={'app': application}, timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
@@ -112,7 +113,7 @@ class LocalAPISession(Session):
             pass
 
 
-class LiveSession(OAuth1Session):
+class LiveAPISession(OAuth1Session):
 
     def __init__(self, public_key, private_key, token=None, token_secret=None, application=None):
         super().__init__(public_key, private_key, token, token_secret)
@@ -120,7 +121,8 @@ class LiveSession(OAuth1Session):
         if application:
             self.headers.update({'X-Application': application})
 
-    def get_authorize_url(self):
+    @property
+    def authorize_url(self):
         _LOGGER.debug('Fetching request token')
         self.fetch_request_token(TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
         _LOGGER.debug('Got request token')
@@ -143,9 +145,35 @@ class Client:
     """Tellduslive client."""
 
     def __init__(self,
-                 session):
-        self._session = session
+                 public_key=None,
+                 private_key=None,
+                 token=None,
+                 token_secret=None,
+                 host=None,
+                 application=None):
         self._state = {}
+        self._session = (
+            LocalAPISession(host, application) if host else
+            LiveAPISession(public_key,
+                           private_key,
+                           token,
+                           token_secret,
+                           application));
+
+    @property
+    def authorize_url(self):
+        return self._session.authorize_url
+
+    def authorize(self):
+        return self._session.authorize()
+
+    @property
+    def access_token(self):
+        return self._session.access_token
+
+    @property
+    def access_token_secret(self):
+        return self._session.access_token_secret
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
@@ -386,7 +414,7 @@ def main():
         print('Could not read configuration')
         exit(-1)
 
-    client = Client(LiveSession(**credentials))
+    client = Client(**credentials)
     client.update()
     print('Devices\n'
           '-------')
