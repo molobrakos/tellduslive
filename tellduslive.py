@@ -160,7 +160,7 @@ class LiveAPISession(OAuth1Session):
             self.access_token = token['oauth_token']
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
-            return self.atuhorized
+            return self.authorized
         except (OSError, ValueError):
             _LOGGER.warning('Failed to authorize')
             return False
