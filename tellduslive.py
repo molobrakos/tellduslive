@@ -103,6 +103,7 @@ class LocalAPISession(Session):
             self.request_token = r['token']
             return r['authUrl']
         except OSError:
+            _LOGGER.warning('Failed to retrieve authorize URL')
             pass
 
     def authorize(self):
@@ -114,6 +115,7 @@ class LocalAPISession(Session):
             self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
             return True
         except OSError:
+            _LOGGER.warning('Failed to authorize')
             pass
 
     def refresh_access_token(self):
@@ -124,6 +126,7 @@ class LocalAPISession(Session):
             self.access_token = res['token']
             return res['expires']
         except OSError:
+            _LOGGER.warning('Failed to refresh access token')
             pass
 
 
@@ -158,7 +161,8 @@ class LiveAPISession(OAuth1Session):
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
             return self.atuhorized
-        except ValueError:
+        except (OSError, ValueError):
+            _LOGGER.warning('Failed to authorize')
             return False
 
 
