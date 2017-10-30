@@ -201,9 +201,9 @@ class Client:
                           response.json()))
             response = response.json()
             if 'error' in response:
-                raise IOError(response['error'])
+                raise OSError(response['error'])
             return response
-        except (OSError, IOError) as error:
+        except OSError as error:
             _LOGGER.warning('Failed request: {}'.format(error))
 
     def execute(self, method, **params):
