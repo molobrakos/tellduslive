@@ -95,10 +95,10 @@ class LocalAPISession(Session):
     @property
     def authorize_url(self):
         try:
-            r = self.put(self._url, data={'app': application}, timeout=TIMEOUT.seconds).json()
+            r = self.put(self._url, data={'app': self._application}, timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
             return r['authUrl']
-        except:
+        except OSError:
             pass
 
     def authorize(self):
@@ -107,7 +107,7 @@ class LocalAPISession(Session):
             self.access_token = r['token']
             self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
             return True
-        except:
+        except OSError:
             pass
 
     def refresh_access_token(self):
@@ -117,7 +117,7 @@ class LocalAPISession(Session):
             res = self.request('refreshToken')
             self.access_token = res['token']
             return res['expires']
-        except:
+        except OSError:
             pass
 
 
