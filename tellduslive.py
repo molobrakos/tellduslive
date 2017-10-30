@@ -193,6 +193,10 @@ class Client:
         return self._session.authorize()
 
     @property
+    def is_authorized(self):
+        return self._session.is_authorized
+
+    @property
     def access_token(self):
         return self._session.access_token
 
