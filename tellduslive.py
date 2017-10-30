@@ -91,11 +91,15 @@ class LocalAPISession(Session):
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
         self._application = application
+        self.request_token = None
+        self.access_token = None
 
     @property
     def authorize_url(self):
         try:
-            r = self.put(self._url, data={'app': self._application}, timeout=TIMEOUT.seconds).json()
+            r = self.put(self._url,
+                         data={'app': self._application},
+                         timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
             return r['authUrl']
         except OSError:
@@ -103,7 +107,9 @@ class LocalAPISession(Session):
 
     def authorize(self):
         try:
-            r = requests.get(url, params=dict(token=request_token), timeout=TIMEOUT.seconds).json()
+            r = requests.get(self.url,
+                             params=dict(token=self.request_token),
+                             timeout=TIMEOUT.seconds).json()
             self.access_token = r['token']
             self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
             return True
@@ -123,9 +129,16 @@ class LocalAPISession(Session):
 
 class LiveAPISession(OAuth1Session):
 
-    def __init__(self, public_key, private_key, token=None, token_secret=None, application=None):
+    def __init__(self,
+                 public_key,
+                 private_key,
+                 token=None,
+                 token_secret=None,
+                 application=None):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
+        self.request_token = None
+        self.access_token = None
         if application:
             self.headers.update({'X-Application': application})
 
@@ -144,8 +157,8 @@ class LiveAPISession(OAuth1Session):
             self.access_token = token['oauth_token']
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
-            return self.authorized
-        except TokenRequestDenied:
+            return self.atuhorized
+        except ValueError:
             return False
 
 
