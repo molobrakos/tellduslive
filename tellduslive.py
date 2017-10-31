@@ -104,7 +104,7 @@ class LocalAPISession(Session):
                          timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
             return r['authUrl']
-        except Exception as e:
+        except OSError as e:
             _LOGGER.error("authorize-url_local_api:", e)
             pass
 
@@ -117,7 +117,7 @@ class LocalAPISession(Session):
                 self.access_token = r['token']
                 self.headers = {'Authorization': 'Bearer {}'.format(self.access_token)}  # should be headers.update?
                 return True
-        except Exception as e:
+        except OSError as e:
             _LOGGER.warning('Failed to authorize', e)
             pass
 
