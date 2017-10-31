@@ -198,7 +198,6 @@ class Client:
                            token,
                            token_secret,
                            application));
-        print(self._session._client.client_secret)
 
     @property
     def authorize_url(self):
