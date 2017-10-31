@@ -103,9 +103,9 @@ class LocalAPISession(Session):
                                 data={'app': self._application},
                                 timeout=TIMEOUT.seconds)
             response.raise_for_status()
-            r = response.json()
-            self.request_token = r['token']
-            return r['authUrl']
+            result = response.json()
+            self.request_token = result['token']
+            return result['authUrl']
         except OSError as e:
             _LOGGER.error("authorize-url_local_api:", e)
             pass
@@ -116,8 +116,8 @@ class LocalAPISession(Session):
                                     params=dict(token=self.request_token),
                                     timeout=TIMEOUT.seconds)
             response.raise_for_status()
-            r = response.json()
-            if 'token' in r:
+            result = response.json()
+            if 'token' in result:
                 self.access_token = r['token']
                 self.headers = {'Authorization': 'Bearer {}'.format(self.access_token)}  # should be headers.update?
                 return True
@@ -130,9 +130,9 @@ class LocalAPISession(Session):
         try:
             response = self.get("http://%s/api/refreshToken" % self._host)
             response.raise_for_status()
-            res = respons.json()
-            self.access_token = res['token']
-            return res['expires']
+            result = response.json()
+            self.access_token = result['token']
+            return result['expires']
         except OSError:
             _LOGGER.warning('Failed to refresh access token')
             pass
