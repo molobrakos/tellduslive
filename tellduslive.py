@@ -99,7 +99,7 @@ class LocalAPISession(Session):
     @property
     def authorize_url(self):
         try:
-            response = self.put("http://%s/api/token" % self._host,
+            response = self.put(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
                                 data={'app': self._application},
                                 timeout=TIMEOUT.seconds)
             response.raise_for_status()
@@ -112,7 +112,7 @@ class LocalAPISession(Session):
 
     def authorize(self):
         try:
-            response = requests.get("http://%s/api/token" % self._host,
+            response = requests.get(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
                                     params=dict(token=self.request_token),
                                     timeout=TIMEOUT.seconds)
             response.raise_for_status()
@@ -131,8 +131,8 @@ class LocalAPISession(Session):
             response = self.get("http://%s/api/refreshToken" % self._host)
             response.raise_for_status()
             result = response.json()
-            self.access_token = result['token']
-            return result['expires']
+            self.access_token = result.get('token')
+            return result.get('expires')
         except OSError:
             _LOGGER.warning('Failed to refresh access token')
             pass
