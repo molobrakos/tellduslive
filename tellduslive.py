@@ -106,7 +106,7 @@ class LocalAPISession(Session):
             result = response.json()
             self.request_token = result.get('token')
             return result.get('authUrl')
-        except OSError:
+        except (OSError, ValueError):
             _LOGGER.exception('Failed to retrieve authorization URL')
 
     def authorize(self):
