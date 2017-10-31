@@ -3,7 +3,7 @@
 """Communicate with Telldus Live server."""
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import requests
 from requests import Session
@@ -95,6 +95,7 @@ class LocalAPISession(Session):
         self._host = host
         self._application = application
         self.request_token = None
+        self.token_timestamp = None
         self.access_token = accesss_token
 
     @property
@@ -118,27 +119,37 @@ class LocalAPISession(Session):
             response.raise_for_status()
             result = response.json()
             if 'token' in result:
-                self.access_token = r['token']
+                self.access_token = result['token']
                 self.headers.update({'Authorization': 'Bearer {}'.format(self.access_token)})
+                self.token_timestamp = datetime.now()
+                token_expiry = datetime.fromtimestamp(result.get('expires'))
+                _LOGGER.debug('Token expires %s', token_expiry)
                 return True
         except OSError:
             _LOGGER.exception('Failed to authorize')
 
     def refresh_access_token(self):
         """Refresh api token"""
-        # FIXME: store token TTL somewhere. Call refresh periodically.
         try:
-            response = self.get(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host))
+            response = self.get(TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host))
             response.raise_for_status()
             result = response.json()
             self.access_token = result.get('token')
-            return result.get('expires')
+            self.token_timestamp = datetime.now()
+            token_expiry = datetime.fromtimestamp(result.get('expires'))
+            _LOGGER.debug('Token expires %s', token_expiry)
+            return True
         except OSError:
             _LOGGER.exception('Failed to refresh access token')
 
     def authorized(self):
         return self.access_token
 
+    def maybe_refresh_token(self):
+        if self.token_timestamp:
+            age = datetime.now() - self.token_timestamp
+            if age > 12 * 60 * 60:  # 12 hours
+                self.refresh_access_token()
 
 class LiveAPISession(OAuth1Session):
 
@@ -178,6 +189,15 @@ class LiveAPISession(OAuth1Session):
             return self.authorized
         except OSError:
             _LOGGER.exception('Failed to authorize')
+
+    def request(self, method, url, **kwargs):
+        response = super().request(method, url, **kwargs)
+        _LOGGER.debug(response.headers)
+        date = response.headers.get('Date')
+        return response
+
+    def maybe_refresh_token(self):
+        pass
 
 
 class Client:
@@ -225,6 +245,7 @@ class Client:
     def request(self, path, **params):
         """Send a request to the Tellstick Live API."""
         try:
+            self._session.maybe_refresh_token()
             url = urljoin(self._session.url, path)
             _LOGGER.debug('Request {} {}'.format(url, params))
             response = self._session.get(url,
