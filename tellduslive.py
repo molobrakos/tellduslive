@@ -89,13 +89,13 @@ def supports_local_api(device):
 
 class LocalAPISession(Session):
 
-    def __init__(self, host, application):
+    def __init__(self, host, application, access_token=None):
         super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
         self._application = application
         self.request_token = None
-        self.access_token = None
+        self.access_token = accesss_token
 
     @property
     def authorize_url(self):
@@ -150,8 +150,8 @@ class LiveAPISession(OAuth1Session):
                  application=None):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
-        self.request_token = None
         self.access_token = None
+        self.access_token_secret = None
         if application:
             self.headers.update({'X-Application': application})
 
@@ -192,12 +192,13 @@ class Client:
                  application=None):
         self._state = {}
         self._session = (
-            LocalAPISession(host, application) if host else
+            LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
                            private_key,
                            token,
                            token_secret,
                            application));
+        print(self._session._client.client_secret)
 
     @property
     def authorize_url(self):
