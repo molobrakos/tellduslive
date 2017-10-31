@@ -111,9 +111,9 @@ class LocalAPISession(Session):
 
     def authorize(self):
         try:
-            response = requests.get(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
-                                    params=dict(token=self.request_token),
-                                    timeout=TIMEOUT.seconds)
+            response = self.get(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
+                                params=dict(token=self.request_token),
+                                timeout=TIMEOUT.seconds)
             response.raise_for_status()
             result = response.json()
             if 'token' in result:
