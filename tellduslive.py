@@ -99,9 +99,11 @@ class LocalAPISession(Session):
     @property
     def authorize_url(self):
         try:
-            r = self.put("http://%s/api/token" % self._host,
-                         data={'app': self._application},
-                         timeout=TIMEOUT.seconds).json()
+            response = self.put("http://%s/api/token" % self._host,
+                                data={'app': self._application},
+                                timeout=TIMEOUT.seconds)
+            response.raise_for_status()
+            r = response.json()
             self.request_token = r['token']
             return r['authUrl']
         except OSError as e:
@@ -110,9 +112,11 @@ class LocalAPISession(Session):
 
     def authorize(self):
         try:
-            r = requests.get("http://%s/api/token" % self._host,
-                             params=dict(token=self.request_token),
-                             timeout=TIMEOUT.seconds).json()
+            response = requests.get("http://%s/api/token" % self._host,
+                                    params=dict(token=self.request_token),
+                                    timeout=TIMEOUT.seconds)
+            response.raise_for_status()
+            r = response.json()
             if 'token' in r:
                 self.access_token = r['token']
                 self.headers = {'Authorization': 'Bearer {}'.format(self.access_token)}  # should be headers.update?
@@ -124,7 +128,9 @@ class LocalAPISession(Session):
         """Refresh api token"""
         # FIXME: store token TTL somewhere. Call refresh periodically.
         try:
-            res = self.get("http://%s/api/refreshToken" % self._host)
+            response = self.get("http://%s/api/refreshToken" % self._host)
+            response.raise_for_status()
+            res = respons.json()
             self.access_token = res['token']
             return res['expires']
         except OSError:
