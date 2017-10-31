@@ -252,7 +252,7 @@ class Client:
                 raise OSError(response['error'])
             return response
         except OSError as error:
-            _LOGGER.warning('Failed request: {}'.format(error))
+            _LOGGER.warning('Failed request: %s', error)
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
