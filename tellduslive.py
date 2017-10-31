@@ -96,7 +96,7 @@ class LocalAPISession(Session):
         self._application = application
         self.request_token = None
         self.token_timestamp = None
-        self.access_token = accesss_token
+        self.access_token = access_token
 
     @property
     def authorize_url(self):
