@@ -141,6 +141,9 @@ class LocalAPISession(Session):
         if self._client.update():
             return {'email': True}
 
+    def authorized(self):
+        return self.access_token
+
 
 class LiveAPISession(OAuth1Session):
 
@@ -176,7 +179,6 @@ class LiveAPISession(OAuth1Session):
         except Exception as e:
             _LOGGER.warning('Failed to authorize', e)
 
-
     def request_user(self):
         """Request user details."""
         return self.request('user/profile')
@@ -211,6 +213,10 @@ class Client:
     @property
     def access_token(self):
         return self._session.access_token
+
+    @property
+    def is_authorized(self):
+        return self._session.authorized
 
     @property
     def access_token_secret(self):
