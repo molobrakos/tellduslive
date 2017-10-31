@@ -209,7 +209,6 @@ class Client:
                  host=None,
                  application=None):
         self._state = {}
-        host = "owl"
         self._session = (
             LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
