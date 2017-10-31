@@ -22,6 +22,7 @@ TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/accessToken')
 
 TELLDUS_LOCAL_API_URL = 'http://{host}/api/'
 TELLDUS_LOCAL_REQUEST_TOKEN_URL = 'http://{host}/api/token'
+TELLDUS_LOCAL_REFRESH_TOKEN_URL = 'http://{host}/api/refreshToken'
 
 TIMEOUT = timedelta(seconds=10)
 
@@ -127,7 +128,7 @@ class LocalAPISession(Session):
         """Refresh api token"""
         # FIXME: store token TTL somewhere. Call refresh periodically.
         try:
-            response = self.get("http://%s/api/refreshToken" % self._host)
+            response = self.get(TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host))
             response.raise_for_status()
             result = response.json()
             self.access_token = result.get('token')
