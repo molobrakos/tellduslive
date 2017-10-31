@@ -215,7 +215,7 @@ class Client:
                            private_key,
                            token,
                            token_secret,
-                           application));
+                           application))
 
     @property
     def authorize_url(self):
