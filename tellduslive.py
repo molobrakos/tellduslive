@@ -89,12 +89,12 @@ def supports_local_api(device):
 class LocalAPISession(Session):
 
     def __init__(self, host, application):
+        super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
         self._application = application
         self.request_token = None
         self.access_token = None
-        self.session = super().__init__()
 
     @property
     def authorize_url(self):
