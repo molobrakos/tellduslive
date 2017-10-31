@@ -108,8 +108,8 @@ class LocalAPISession(Session):
             result = response.json()
             self.request_token = result.get('token')
             return result.get('authUrl')
-        except (OSError, ValueError):
-            _LOGGER.exception('Failed to retrieve authorization URL')
+        except (OSError, ValueError) as e:
+            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
 
     def authorize(self):
         try:
@@ -125,8 +125,8 @@ class LocalAPISession(Session):
                 token_expiry = datetime.fromtimestamp(result.get('expires'))
                 _LOGGER.debug('Token expires %s', token_expiry)
                 return True
-        except OSError:
-            _LOGGER.exception('Failed to authorize')
+        except OSError as e:
+            _LOGGER.error('Failed to authorize: %s', e)
 
     def refresh_access_token(self):
         """Refresh api token"""
@@ -139,8 +139,8 @@ class LocalAPISession(Session):
             token_expiry = datetime.fromtimestamp(result.get('expires'))
             _LOGGER.debug('Token expires %s', token_expiry)
             return True
-        except OSError:
-            _LOGGER.exception('Failed to refresh access token')
+        except OSError as e:
+            _LOGGER.error('Failed to refresh access token: %s', e)
 
     def authorized(self):
         return self.access_token
@@ -173,10 +173,8 @@ class LiveAPISession(OAuth1Session):
             self.fetch_request_token(TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
             _LOGGER.debug('Got request token')
             return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
-        except OSError:
-            _LOGGER.exception('Failed to retrieve authorization URL')
-        except ValueError:
-            _LOGGER.exception('Failed to retrieve authorization URL')
+        except (OSError, ValueError) as e:
+            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
 
     def authorize(self):
         try:
@@ -187,8 +185,8 @@ class LiveAPISession(OAuth1Session):
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
             return self.authorized
-        except OSError:
-            _LOGGER.exception('Failed to authorize')
+        except OSError as e:
+            _LOGGER.error('Failed to authorize: %s', e)
 
     def request(self, method, url, **kwargs):
         response = super().request(method, url, **kwargs)
@@ -211,6 +209,7 @@ class Client:
                  host=None,
                  application=None):
         self._state = {}
+        host = "owl"
         self._session = (
             LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
