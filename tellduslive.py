@@ -340,7 +340,7 @@ class Device:
     def __str__(self):
         if self.is_sensor:
             items = ', '.join(str(item) for item in self.items)
-            return 'Sensor #{id} \'{name}\' ({items})'.format(
+            return 'Sensor #{id:>08} {name:<20} ({items})'.format(
                 id=self.device_id,
                 name=self.name or UNNAMED_DEVICE,
                 items=items)
