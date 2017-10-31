@@ -188,12 +188,6 @@ class LiveAPISession(OAuth1Session):
         except OSError as e:
             _LOGGER.error('Failed to authorize: %s', e)
 
-    def request(self, method, url, **kwargs):
-        response = super().request(method, url, **kwargs)
-        _LOGGER.debug(response.headers)
-        date = response.headers.get('Date')
-        return response
-
     def maybe_refresh_token(self):
         pass
 
