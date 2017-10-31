@@ -20,7 +20,8 @@ TELLDUS_LIVE_REQUEST_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/requestToken'
 TELLDUS_LIVE_AUTHORIZE_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/authorize')
 TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/accessToken')
 
-TELLDUS_LOCAL_API_URL = 'http://{host}/api/token'
+TELLDUS_LOCAL_API_URL = 'http://{host}/api/'
+TELLDUS_LOCAL_REQUEST_TOKEN_URL = 'http://{host}/api/token'
 
 TIMEOUT = timedelta(seconds=10)
 
@@ -93,41 +94,47 @@ class LocalAPISession(Session):
         self._application = application
         self.request_token = None
         self.access_token = None
+        self.session = super().__init__()
 
     @property
     def authorize_url(self):
         try:
-            r = self.put(self._url,
+            r = self.put("http://%s/api/token" % self._host,
                          data={'app': self._application},
                          timeout=TIMEOUT.seconds).json()
             self.request_token = r['token']
             return r['authUrl']
-        except OSError:
-            _LOGGER.warning('Failed to retrieve authorize URL')
+        except Exception as e:
+            _LOGGER.error("authorize-url_local_api:", e)
             pass
 
     def authorize(self):
         try:
-            r = requests.get(self.url,
+            r = requests.get("http://%s/api/token" % self._host,
                              params=dict(token=self.request_token),
                              timeout=TIMEOUT.seconds).json()
-            self.access_token = r['token']
-            self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
-            return True
-        except OSError:
-            _LOGGER.warning('Failed to authorize')
+            if 'token' in r:
+                self.access_token = r['token']
+                self.headers = {'Authorization': 'Bearer {}'.format(self.access_token)}  # should be headers.update?
+                return True
+        except Exception as e:
+            _LOGGER.warning('Failed to authorize', e)
             pass
 
     def refresh_access_token(self):
         """Refresh api token"""
         # FIXME: store token TTL somewhere. Call refresh periodically.
         try:
-            res = self.request('refreshToken')
+            res = self.get("http://%s/api/refreshToken" % self._host)
             self.access_token = res['token']
             return res['expires']
         except OSError:
             _LOGGER.warning('Failed to refresh access token')
             pass
+
+    def request_user(self):
+        if self._client.update():
+            return {'email': True}
 
 
 class LiveAPISession(OAuth1Session):
@@ -160,10 +167,14 @@ class LiveAPISession(OAuth1Session):
             self.access_token = token['oauth_token']
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
-            return self.atuhorized
-        except (OSError, ValueError):
-            _LOGGER.warning('Failed to authorize')
+            return self.authorized
+        except Exception as e:
+            _LOGGER.warning('Failed to authorize', e)
             return False
+
+    def request_user(self):
+        """Request user details."""
+        return self.request('user/profile')
 
 
 class Client:
@@ -230,7 +241,7 @@ class Client:
 
     def request_user(self):
         """Request user details."""
-        return self.request('user/profile')
+        return self._session.request_user()
 
     def request_devices(self):
         """Request list of devices from server."""
