@@ -137,10 +137,6 @@ class LocalAPISession(Session):
             _LOGGER.warning('Failed to refresh access token')
             pass
 
-    def request_user(self):
-        if self._client.update():
-            return {'email': True}
-
     def authorized(self):
         return self.access_token
 
@@ -178,10 +174,6 @@ class LiveAPISession(OAuth1Session):
             return self.authorized
         except Exception as e:
             _LOGGER.warning('Failed to authorize', e)
-
-    def request_user(self):
-        """Request user details."""
-        return self.request('user/profile')
 
 
 class Client:
@@ -249,10 +241,6 @@ class Client:
         """Make request, check result if successful."""
         response = self.request(method, **params)
         return response and response.get('status') == 'success'
-
-    def request_user(self):
-        """Request user details."""
-        return self._session.request_user()
 
     def request_devices(self):
         """Request list of devices from server."""
