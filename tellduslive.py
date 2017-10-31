@@ -119,7 +119,6 @@ class LocalAPISession(Session):
                 return True
         except OSError as e:
             _LOGGER.warning('Failed to authorize', e)
-            pass
 
     def refresh_access_token(self):
         """Refresh api token"""
@@ -170,7 +169,7 @@ class LiveAPISession(OAuth1Session):
             return self.authorized
         except Exception as e:
             _LOGGER.warning('Failed to authorize', e)
-            return False
+
 
     def request_user(self):
         """Request user details."""
