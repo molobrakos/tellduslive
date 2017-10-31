@@ -163,6 +163,8 @@ class LiveAPISession(OAuth1Session):
             return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
         except OSError:
             _LOGGER.exception('Failed to retrieve authorization URL')
+        except ValueError:
+            _LOGGER.exception('Failed to retrieve authorization URL')
 
     def authorize(self):
         try:
