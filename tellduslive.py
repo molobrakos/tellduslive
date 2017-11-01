@@ -97,6 +97,10 @@ class LocalAPISession(Session):
         self.request_token = None
         self.token_timestamp = None
         self.access_token = access_token
+        if access_token:
+            self.headers.update(
+                {'Authorization': 'Bearer {}'.format(self.access_token)})
+            self.refresh_access_token()
 
     @property
     def authorize_url(self):
@@ -156,7 +160,7 @@ class LocalAPISession(Session):
         """Refresh access_token if expired."""
         if self.token_timestamp:
             age = datetime.now() - self.token_timestamp
-            if age > 12 * 60 * 60:  # 12 hours
+            if age > timedelta(seconds=(12 * 60 * 60)):  # 12 hours
                 self.refresh_access_token()
 
 
