@@ -204,7 +204,7 @@ class LiveAPISession(OAuth1Session):
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
             return self.authorized
-        except (OSError, ValueError):
+        except (OSError, ValueError) as e:
             _LOGGER.error('Failed to authorize: %s', e)
 
     def maybe_refresh_token(self):
@@ -240,10 +240,6 @@ class Client:
     def authorize(self):
         """Perform authorization."""
         return self._session.authorize()
-
-    @property
-    def is_authorized(self):
-        return self._session.is_authorized
 
     @property
     def access_token(self):
