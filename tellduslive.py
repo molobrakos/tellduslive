@@ -3,9 +3,8 @@
 """Communicate with Telldus Live server."""
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-import requests
 from requests import Session
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
@@ -14,13 +13,14 @@ __version__ = '0.7.1'
 
 _LOGGER = logging.getLogger(__name__)
 
-TELLDUS_LIVE_URL = 'https://api.telldus.com'
-TELLDUS_LIVE_API_URL = urljoin(TELLDUS_LIVE_URL, '/json/')
-TELLDUS_LIVE_REQUEST_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/requestToken')
-TELLDUS_LIVE_AUTHORIZE_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/authorize')
-TELLDUS_LIVE_ACCESS_TOKEN_URL = urljoin(TELLDUS_LIVE_URL, '/oauth/accessToken')
+TELLDUS_LIVE_API_URL = 'https://api.telldus.com/json/'
+TELLDUS_LIVE_REQUEST_TOKEN_URL = 'https://api.telldus.com/oauth/requestToken'
+TELLDUS_LIVE_AUTHORIZE_URL = 'https://api.telldus.com/oauth/authorize'
+TELLDUS_LIVE_ACCESS_TOKEN_URL = 'https://api.telldus.com/oauth/accessToken'
 
-TELLDUS_LOCAL_API_URL = 'http://{host}/api/token'
+TELLDUS_LOCAL_API_URL = 'http://{host}/api/'
+TELLDUS_LOCAL_REQUEST_TOKEN_URL = 'http://{host}/api/token'
+TELLDUS_LOCAL_REFRESH_TOKEN_URL = 'http://{host}/api/refreshToken'
 
 TIMEOUT = timedelta(seconds=10)
 
@@ -81,57 +81,93 @@ SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
 
 
 def supports_local_api(device):
+    """Return true if the device supports local access."""
     return any(dev in device
                for dev in SUPPORTS_LOCAL_API)
 
 
 class LocalAPISession(Session):
+    """Connect directly to the device."""
 
-    def __init__(self, host, application):
+    def __init__(self, host, application, access_token=None):
+        super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
         self._application = application
         self.request_token = None
-        self.access_token = None
+        self.token_timestamp = None
+        self.access_token = access_token
+        if access_token:
+            self.headers.update(
+                {'Authorization': 'Bearer {}'.format(self.access_token)})
+            self.refresh_access_token()
 
     @property
     def authorize_url(self):
+        """Retrieve URL for authorization."""
         try:
-            r = self.put(self._url,
-                         data={'app': self._application},
-                         timeout=TIMEOUT.seconds).json()
-            self.request_token = r['token']
-            return r['authUrl']
-        except OSError:
-            _LOGGER.warning('Failed to retrieve authorize URL')
-            pass
+            response = self.put(
+                TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
+                data={'app': self._application},
+                timeout=TIMEOUT.seconds)
+            response.raise_for_status()
+            result = response.json()
+            self.request_token = result.get('token')
+            return result.get('authUrl')
+        except (OSError, ValueError) as e:
+            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
 
     def authorize(self):
+        """Perform authorization."""
         try:
-            r = requests.get(self.url,
-                             params=dict(token=self.request_token),
-                             timeout=TIMEOUT.seconds).json()
-            self.access_token = r['token']
-            self.headers = {'Authorization': 'Bearer {}'.format(access_token)}  # should be headers.update?
-            return True
-        except OSError:
-            _LOGGER.warning('Failed to authorize')
-            pass
+            response = self.get(
+                TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
+                params=dict(token=self.request_token),
+                timeout=TIMEOUT.seconds)
+            response.raise_for_status()
+            result = response.json()
+            if 'token' in result:
+                self.access_token = result['token']
+                self.headers.update(
+                    {'Authorization': 'Bearer {}'.format(self.access_token)})
+                self.token_timestamp = datetime.now()
+                token_expiry = datetime.fromtimestamp(result.get('expires'))
+                _LOGGER.debug('Token expires %s', token_expiry)
+                return True
+        except OSError as e:
+            _LOGGER.error('Failed to authorize: %s', e)
 
     def refresh_access_token(self):
         """Refresh api token"""
-        # FIXME: store token TTL somewhere. Call refresh periodically.
         try:
-            res = self.request('refreshToken')
-            self.access_token = res['token']
-            return res['expires']
-        except OSError:
-            _LOGGER.warning('Failed to refresh access token')
-            pass
+            response = self.get(
+                TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host))
+            response.raise_for_status()
+            result = response.json()
+            self.access_token = result.get('token')
+            self.token_timestamp = datetime.now()
+            token_expiry = datetime.fromtimestamp(result.get('expires'))
+            _LOGGER.debug('Token expires %s', token_expiry)
+            return True
+        except OSError as e:
+            _LOGGER.error('Failed to refresh access token: %s', e)
+
+    def authorized(self):
+        """Return true if successfully authorized."""
+        return self.access_token
+
+    def maybe_refresh_token(self):
+        """Refresh access_token if expired."""
+        if self.token_timestamp:
+            age = datetime.now() - self.token_timestamp
+            if age > timedelta(seconds=(12 * 60 * 60)):  # 12 hours
+                self.refresh_access_token()
 
 
 class LiveAPISession(OAuth1Session):
+    """Connection to the cloud service."""
 
+    # pylint: disable=too-many-arguments
     def __init__(self,
                  public_key,
                  private_key,
@@ -140,35 +176,46 @@ class LiveAPISession(OAuth1Session):
                  application=None):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
-        self.request_token = None
         self.access_token = None
+        self.access_token_secret = None
         if application:
             self.headers.update({'X-Application': application})
 
     @property
     def authorize_url(self):
+        """Retrieve URL for authorization."""
         _LOGGER.debug('Fetching request token')
-        self.fetch_request_token(TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
-        _LOGGER.debug('Got request token')
-        return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
+        try:
+            self.fetch_request_token(
+                TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
+            _LOGGER.debug('Got request token')
+            return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
+        except (OSError, ValueError) as e:
+            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
 
     def authorize(self):
+        """Perform authorization."""
         try:
             _LOGGER.debug('Fetching access token')
-            token = self._fetch_token(TELLDUS_LIVE_ACCESS_TOKEN_URL, timeout=TIMEOUT.seconds)
+            token = self._fetch_token(
+                TELLDUS_LIVE_ACCESS_TOKEN_URL, timeout=TIMEOUT.seconds)
             _LOGGER.debug('Got access token')
             self.access_token = token['oauth_token']
             self.access_token_secret = token['oauth_token_secret']
             _LOGGER.debug('Authorized: %s', self.authorized)
             return self.authorized
         except (OSError, ValueError):
-            _LOGGER.warning('Failed to authorize')
-            return False
+            _LOGGER.error('Failed to authorize: %s', e)
+
+    def maybe_refresh_token(self):
+        """Refresh access_token if expired."""
+        pass
 
 
 class Client:
     """Tellduslive client."""
 
+    # pylint: disable=too-many-arguments
     def __init__(self,
                  public_key=None,
                  private_key=None,
@@ -178,18 +225,20 @@ class Client:
                  application=None):
         self._state = {}
         self._session = (
-            LocalAPISession(host, application) if host else
+            LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
                            private_key,
                            token,
                            token_secret,
-                           application));
+                           application))
 
     @property
     def authorize_url(self):
+        """Retrieve URL for authorization."""
         return self._session.authorize_url
 
     def authorize(self):
+        """Perform authorization."""
         return self._session.authorize()
 
     @property
@@ -198,10 +247,17 @@ class Client:
 
     @property
     def access_token(self):
+        """Return access token."""
         return self._session.access_token
 
     @property
+    def is_authorized(self):
+        """Return true if successfully authorized."""
+        return self._session.authorized
+
+    @property
     def access_token_secret(self):
+        """Return the token secret."""
         return self._session.access_token_secret
 
     def _device(self, device_id):
@@ -211,30 +267,27 @@ class Client:
     def request(self, path, **params):
         """Send a request to the Tellstick Live API."""
         try:
+            self._session.maybe_refresh_token()
             url = urljoin(self._session.url, path)
-            _LOGGER.debug('Request {} {}'.format(url, params))
+            _LOGGER.debug('Request %s %s', url, params)
             response = self._session.get(url,
                                          params=params,
                                          timeout=TIMEOUT.seconds)
             response.raise_for_status()
-            _LOGGER.debug('Response {} {}'.format(
+            _LOGGER.debug('Response %s %s',
                           response.status_code,
-                          response.json()))
+                          response.json())
             response = response.json()
             if 'error' in response:
                 raise OSError(response['error'])
             return response
         except OSError as error:
-            _LOGGER.warning('Failed request: {}'.format(error))
+            _LOGGER.warning('Failed request: %s', error)
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
         response = self.request(method, **params)
         return response and response.get('status') == 'success'
-
-    def request_user(self):
-        """Request user details."""
-        return self.request('user/profile')
 
     def request_devices(self):
         """Request list of devices from server."""
@@ -295,17 +348,18 @@ class Device:
     def __str__(self):
         if self.is_sensor:
             items = ', '.join(str(item) for item in self.items)
-            return 'Sensor #{id} \'{name}\' ({items})'.format(
+            return 'Sensor #{id:>08} {name:<20} ({items})'.format(
                 id=self.device_id,
                 name=self.name or UNNAMED_DEVICE,
                 items=items)
         else:
-            return 'Device #{id} \'{name}\' ({state}:{value}) [{methods}]'.format(
-                id=self.device_id,
-                name=self.name or UNNAMED_DEVICE,
-                state=self._str_methods(self.state),
-                value=self.statevalue,
-                methods=self._str_methods(self.methods))
+            return ('Device #{id} \'{name}\' '
+                    '({state}:{value}) [{methods}]').format(
+                        id=self.device_id,
+                        name=self.name or UNNAMED_DEVICE,
+                        state=self._str_methods(self.state),
+                        value=self.statevalue,
+                        methods=self._str_methods(self.methods))
 
     def __getattr__(self, name):
         if (self.device and
