@@ -5,7 +5,7 @@
 import logging
 from datetime import datetime, timedelta
 
-from requests import Session
+import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 
@@ -86,7 +86,7 @@ def supports_local_api(device):
                for dev in SUPPORTS_LOCAL_API)
 
 
-class LocalAPISession(Session):
+class LocalAPISession(requests.Session):
     """Connect directly to the device."""
 
     def __init__(self, host, application, access_token=None):
@@ -212,8 +212,8 @@ class LiveAPISession(OAuth1Session):
         pass
 
 
-class Client:
-    """Tellduslive client."""
+class Session:
+    """Tellduslive session."""
 
     # pylint: disable=too-many-arguments
     def __init__(self,
@@ -337,8 +337,8 @@ class Client:
 class Device:
     """Tellduslive device."""
 
-    def __init__(self, client, device_id):
-        self._client = client
+    def __init__(self, session, device_id):
+        self._session = session
         self._device_id = device_id
 
     def __str__(self):
@@ -367,7 +367,7 @@ class Device:
     def device(self):
         """Return the raw representation of the device."""
         # pylint: disable=protected-access
-        return self._client._device(self.device_id)
+        return self._session._device(self.device_id)
 
     @property
     def device_id(self):
@@ -388,7 +388,7 @@ class Device:
         params.update(id=self._device_id)
         # Corresponding API methods
         method = 'device/{}'.format(METHODS[command])
-        if self._client.execute(method, **params):
+        if self._session.execute(method, **params):
             self.device['state'] = command
             return True
 
@@ -493,11 +493,11 @@ def main():
         print('Could not read configuration')
         exit(-1)
 
-    client = Client(**credentials)
-    client.update()
+    session = Session(**credentials)
+    session.update()
     print('Devices\n'
           '-------')
-    for device in client.devices:
+    for device in session.devices:
         print(device)
         for item in device.items:
             print('- {}'.format(item))
