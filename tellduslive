@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+# -*- mode: python; coding: utf-8 -*-
+
+"""
+Communicate with Telldus Live server.
+
+Usage:
+  tellduslive.py (-h | --help)
+  tellduslive.py --version
+  tellduslive.py [-v|-vv] [options] list
+  tellduslive.py [-v|-vv] [options] <id> (on|off)
+
+Options:
+  -H <host>         Host
+  -D                Autodiscover host
+  -h --help         Show this message
+  -v,-vv            Increase verbosity
+  --version         Show version
+
+"""
+
+import docopt
+import logging
+
+from tellduslive import __version__, read_credentials, discover, Session
+
+_LOGGER = logging.getLogger(__name__)
+
+def main():
+    """Command line interface."""
+    args = docopt.docopt(__doc__,
+                         version=__version__)
+
+    if args['-v'] == 2:
+        level=logging.DEBUG
+    elif args['-v']:
+        level=logging.INFO
+    else:
+        level=logging.ERROR
+
+    FORMAT = '%(asctime)s %(name)s: %(message)s'
+    logging.basicConfig(level=level, format=FORMAT, datefmt='%H:%M:%S')
+
+    credentials = read_credentials()
+
+    if args['-D']:
+        host = next(discover(), None)
+        if not host:
+            exit('Could not find local Tellstick Net or Tellstick ZNet')
+        _LOGGER.debug('Found Tellstick at %s', host)
+        credentials.update(host = host)
+    elif args['-H']:
+        credentials.update(host = args['-H'])
+
+    session = Session(**credentials)
+    if not session.update():
+        exit('Could not update status from server')
+
+    if args['list']:
+        print('Devices\n')
+        for device in session.devices:
+            print(device)
+            for item in device.items:
+                print('- {}'.format(item))
+    elif args['<id>']:
+        device_id = args['<id>']
+        device = session.device(device_id)
+        if args['on']:
+            device.turn_on()
+        elif args['off']:
+            device.turn_off()
+
+if __name__ == '__main__':
+   main()
