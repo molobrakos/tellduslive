@@ -1,13 +1,16 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-"""Communicate with Telldus Live server."""
+#!/usr/bin/env python3
+# -*- mode: python; coding: utf-8 -*-
 
 import logging
 from datetime import datetime, timedelta
-
+import sys
 import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
+from discovery import discover
+
+
+sys.version_info >= (3, 0) or exit('Python 3 required')
 
 __version__ = '0.10.0'
 
@@ -478,21 +481,27 @@ class SensorItem:
             name=self.name, value=self.value)
 
 
-def main():
-    """Dump configured devices and sensors."""
-    from os import path
+def read_credentials():
     from sys import argv
-    logging.basicConfig(level=logging.INFO)
-    try:
-        with open(path.join(path.dirname(argv[0]),
-                            '.credentials.conf')) as config:
-            credentials = dict(
-                x.split(': ')
-                for x in config.read().strip().splitlines())
-    except (IOError, OSError):
-        print('Could not read configuration')
-        exit(-1)
+    from os.path import join, dirname, expanduser
+    for directory in [
+            dirname(argv[0]),
+            expanduser('~')]:
+        try:
+            with open(join(directory, '.tellduslive.conf')) as config:
+                return dict(
+                    x.split(': ')
+                    for x in config.read().strip().splitlines()
+                    if not x.startswith('#'))
+        except OSError:
+            continue
+    return {}
 
+
+if __name__ == '__main__':
+    """Dump configured devices and sensors."""
+    logging.basicConfig(level=logging.INFO)
+    credentials = read_credentials()
     session = Session(**credentials)
     session.update()
     print('Devices\n'
@@ -501,7 +510,3 @@ def main():
         print(device)
         for item in device.items:
             print('- {}'.format(item))
-
-
-if __name__ == '__main__':
-    main()
