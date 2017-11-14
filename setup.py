@@ -2,14 +2,18 @@
 
 from setuptools import setup
 
-setup(name="tellduslive",
+setup(name='tellduslive',
       version='0.10.0',
-      description="Communicate with Telldus Live",
-      url="https://github.com/molobrakos/tellduslive",
-      license="",
-      author="Erik",
-      author_email="error.errorsson@gmail.com",
+      description='Communicate with Telldus Live',
+      url='https://github.com/molobrakos/tellduslive',
+      license='',
+      author='Erik',
+      author_email='error.errorsson@gmail.com',
       install_requires=['requests',
                         'requests_oauthlib'],
-      py_modules=["tellduslive"],
-      provides=["tellduslive"],)
+      py_modules=['tellduslive'],
+      provides=['tellduslive'],
+      scripts=['tellduslive'],
+      extras_require={
+          'console':  ['docopt'],
+      })
