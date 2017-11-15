@@ -66,18 +66,18 @@ METHODS = {
 }
 
 # Sensor types
-TEMPERATURE = 'temperature',
-HUMIDITY = 'humidity',
-RAINRATE = 'rrate',
-RAINTOTAL = 'rtot',
-WINDDIRECTION = 'wdir',
-WINDAVERAGE = 'wavg',
-WINDGUST = 'wgust',
-UV = 'uv',
-WATT = 'watt',
-LUMINANCE = 'lum',
-DEW_POINT = 'dew',  # ?
-BAROMETRIC_PRESSURE = '?',
+TEMPERATURE = 'temperature'
+HUMIDITY = 'humidity'
+RAINRATE = 'rrate'
+RAINTOTAL = 'rtot'
+WINDDIRECTION = 'wdir'
+WINDAVERAGE = 'wavg'
+WINDGUST = 'wgust'
+UV = 'uv'
+WATT = 'watt'
+LUMINANCE = 'lum'
+DEW_POINT = 'dewp'
+BAROMETRIC_PRESSURE = 'barpress'
 
 
 SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
