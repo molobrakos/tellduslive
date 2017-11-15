@@ -388,7 +388,7 @@ class Device:
 
     def _execute(self, command, **params):
         """Send command to server and update local state."""
-        params.update(id=self._device_id)
+        params.update(id=self.device_id)
         # Corresponding API methods
         method = 'device/{}'.format(METHODS[command])
         if self._session.execute(method, **params):
