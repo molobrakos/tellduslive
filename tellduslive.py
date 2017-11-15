@@ -307,9 +307,9 @@ class Session:
         """Updates all devices and sensors from server."""
         self._state = {}
 
-        def collect(devices):
+        def collect(devices, is_sensor=False):
             """Update local state."""
-            self._state.update({device['id']: device
+            self._state.update({'_' * is_sensor + device['id']: device
                                 for device in devices or {}
                                 if device['name']})
 
@@ -317,7 +317,7 @@ class Session:
         collect(devices)
 
         sensors = self.request_sensors()
-        collect(sensors)
+        collect(sensors, True)
 
         return (devices is not None and
                 sensors is not None)
