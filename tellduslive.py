@@ -79,6 +79,9 @@ LUMINANCE = 'lum'
 DEW_POINT = 'dewp'
 BAROMETRIC_PRESSURE = 'barpress'
 
+BATTERY_LOW = 255
+BATTERY_UNKNOWN = 254
+BATTERY_OK = 253
 
 SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
 
