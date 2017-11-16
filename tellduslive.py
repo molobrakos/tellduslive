@@ -7,8 +7,6 @@ import sys
 import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
-from discovery import discover
-
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
