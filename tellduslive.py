@@ -309,7 +309,7 @@ class Session:
 
         def collect(devices, is_sensor=False):
             """Update local state."""
-            self._state.update({'_' * is_sensor + device['id']: device
+            self._state.update({'_' * is_sensor + str(device['id']): device
                                 for device in devices or {}
                                 if device['name']})
 
