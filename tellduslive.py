@@ -275,8 +275,9 @@ class Session:
                                          params=params,
                                          timeout=TIMEOUT.seconds)
             response.raise_for_status()
-            _LOGGER.debug('Response %s %s',
+            _LOGGER.debug('Response %s %s %s',
                           response.status_code,
+                          response.headers['content-type'],
                           response.json())
             response = response.json()
             if 'error' in response:
