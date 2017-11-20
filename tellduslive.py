@@ -7,7 +7,7 @@ import sys
 import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
-
+from threading import Lock
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
@@ -229,6 +229,7 @@ class Session:
                  host=None,
                  application=None):
         self._state = {}
+        self._lock = Lock()
         self._session = (
             LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
@@ -263,9 +264,10 @@ class Session:
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
-        return self._state.get(device_id)
+        with self._lock:
+            return self._state.get(device_id)
 
-    def request(self, path, **params):
+    def _request(self, path, **params):
         """Send a request to the Tellstick Live API."""
         try:
             self._session.maybe_refresh_token()
@@ -288,42 +290,45 @@ class Session:
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
-        response = self.request(method, **params)
-        return response and response.get('status') == 'success'
+        with self._lock:
+            response = self._request(method, **params)
+            return response and response.get('status') == 'success'
 
-    def request_devices(self):
+    def _request_devices(self):
         """Request list of devices from server."""
-        res = self.request('devices/list',
-                           supportedMethods=SUPPORTED_METHODS,
-                           includeIgnored=0)
+        res = self._request('devices/list',
+                            supportedMethods=SUPPORTED_METHODS,
+                            includeIgnored=0)
         return res.get('device') if res else None
 
-    def request_sensors(self):
+    def _request_sensors(self):
         """Request list of sensors from server."""
-        res = self.request('sensors/list',
-                           includeValues=1,
-                           includeScale=1,
-                           includeIgnored=0)
+        res = self._request('sensors/list',
+                            includeValues=1,
+                            includeScale=1,
+                            includeIgnored=0)
         return res.get('sensor') if res else None
 
     def update(self):
         """Updates all devices and sensors from server."""
-        self._state = {}
+        with self._lock:
 
-        def collect(devices, is_sensor=False):
-            """Update local state."""
-            self._state.update({'_' * is_sensor + str(device['id']): device
-                                for device in devices or {}
-                                if device['name']})
+            self._state = {}
 
-        devices = self.request_devices()
-        collect(devices)
+            def collect(devices, is_sensor=False):
+                """Update local state."""
+                self._state.update({'_' * is_sensor + str(device['id']): device
+                                    for device in devices or {}
+                                    if device['name']})
 
-        sensors = self.request_sensors()
-        collect(sensors, True)
+            devices = self._request_devices()
+            collect(devices)
 
-        return (devices is not None and
-                sensors is not None)
+            sensors = self._request_sensors()
+            collect(sensors, True)
+
+            return (devices is not None and
+                    sensors is not None)
 
     def device(self, device_id):
         """Return a device object."""
@@ -337,7 +342,8 @@ class Session:
     @property
     def device_ids(self):
         """List of known device ids."""
-        return self._state.keys()
+        with self._lock:
+            return self._state.keys()
 
 
 class Device:
@@ -406,11 +412,8 @@ class Device:
     @property
     def statevalue(self):
         """State value of device."""
-        return (self.device['statevalue'] if
-                self.device and
-                self.device['statevalue'] and
-                self.device['statevalue'] != 'unde'
-                else 0)
+        val = self.device.get('statevalue')
+        return val if val and val != 'unde' else 0
 
     @property
     def is_on(self):
