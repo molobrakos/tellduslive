@@ -23,7 +23,7 @@ import docopt
 import logging
 
 from tellduslive import __version__, read_credentials, Session
-from discovery import discover
+from tellsticknet.discovery import discover
 
 _LOGGER = logging.getLogger(__name__)
 
