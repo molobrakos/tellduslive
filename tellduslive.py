@@ -227,7 +227,10 @@ class Session:
                  token=None,
                  token_secret=None,
                  host=None,
-                 application=None):
+                 application=None,
+                 listen=False,  # listen for local UDP broadcasts
+                 devices=None,  # mapping of local device ids and server device ids
+                 callback=None):  # callback for asynchrounous sensor updates
         self._state = {}
         self._lock = Lock()
         self._session = (
@@ -237,6 +240,15 @@ class Session:
                            token,
                            token_secret,
                            application))
+        if listen:
+            local_device = listen if isinstance(listen, str) else host
+
+            def device_updated(what):
+                # map device id etc
+                callback()
+
+            from tellsticknet import async_listen
+            async_listen(local_device, callback=device_updated)
 
     @property
     def authorize_url(self):
