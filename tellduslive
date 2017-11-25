@@ -7,12 +7,14 @@ Communicate with Telldus Live server.
 Usage:
   tellduslive.py (-h | --help)
   tellduslive.py --version
-  tellduslive.py [-v|-vv] [options] list
+  tellduslive.py [-v|-vv] [options] list [-r] [-d <DELAY>]
   tellduslive.py [-v|-vv] [options] <id> (on|off)
 
 Options:
   -H <host>         Host
   -D                Autodiscover host
+  -r                Repeat polling until stopped
+  -d <DELAY>        Delay between polling [default: 5]
   -h --help         Show this message
   -v,-vv            Increase verbosity
   --version         Show version
@@ -21,6 +23,7 @@ Options:
 
 import docopt
 import logging
+from time import sleep
 
 from tellduslive import __version__, read_credentials, Session
 from tellsticknet.discovery import discover
@@ -53,16 +56,31 @@ def main():
     elif args['-H']:
         credentials.update(host = args['-H'])
 
+    def callback():
+        print('Got asynchronous sensor update')
+
+    credentials.update(listen=True,
+                       callback=callback)
+
     session = Session(**credentials)
     if not session.update():
         exit('Could not update status from server')
 
     if args['list']:
-        print('Devices\n')
-        for device in session.devices:
-            print(device)
-            for item in device.items:
-                print('- {}'.format(item))
+        while True:
+            print('Devices')
+            print('-' * 60)
+            for device in session.devices:
+                print(device)
+                for item in device.items:
+                    print('- {}'.format(item))
+
+            if not args['-r']:
+                exit(0)
+
+            sleep(int(args['-d']))
+            session.update()
+
     elif args['<id>']:
         device_id = args['<id>']
         device = session.device(device_id)
