@@ -62,7 +62,11 @@ def main():
     credentials.update(listen=True,
                        callback=callback)
 
-    session = Session(**credentials)
+    try:
+        session = Session(**credentials)
+    except ValueError as e:
+        exit(e)
+
     if not session.update():
         exit('Could not update status from server')
 

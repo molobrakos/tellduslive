@@ -231,6 +231,14 @@ class Session:
                  listen=False,  # listen for local UDP broadcasts
                  devices=None,  # mapping of local device ids and server device ids
                  callback=None):  # callback for asynchrounous sensor updates
+
+        if not(all([public_key,
+                    private_key,
+                    token,
+                    token_secret]) or
+               all([host, token])):
+            raise ValueError('Missing configuration')
+
         self._state = {}
         self._lock = Lock()
         self._session = (
