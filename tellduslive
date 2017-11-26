@@ -42,7 +42,7 @@ def main():
     else:
         level=logging.ERROR
 
-    FORMAT = '%(asctime)s %(name)s: %(message)s'
+    FORMAT = '%(asctime)s %(name)23s %(threadName)s %(message)s'
     logging.basicConfig(level=level, format=FORMAT, datefmt='%H:%M:%S')
 
     credentials = read_credentials()
