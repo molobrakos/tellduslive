@@ -1,9 +1,25 @@
 Example
-
-  >  ./tellduslive.py 
-  Devices
-  -------
-  Sensor@2263701:Basement(temp=8.6,humidity=59)
-  Sensor@2214341:Bathroom(temp=9.5,humidity=47)
-  Sensor@2222911:Outdoors(temp=-1.9)
-  Device@2210326:Livingroom dimmer(TURNOFF:215)(DIM|TURNON|TURNOFF)
+....
+>  ./tellduslive.py list
+Devices
+----------------------------------------------------------------------------------
+Device  1848398                                Balkong                          On
+Device  1848385                                Köket                            On
+Device  1848439                                Sovrum                          Off
+Device  1852182                                Vardagsrum                       On
+Device  1848388                                Soffan                           On
+Sensor  5658922 fineoffset temperaturehumidity Förråd                   temp  20.4
+Sensor  5658922 fineoffset temperaturehumidity Förråd               humidity    51
+Sensor  5168570   mandolyn temperaturehumidity Källare                  temp   8.7
+Sensor  5168570   mandolyn temperaturehumidity Källare              humidity    64
+Sensor  5250847   mandolyn temperaturehumidity Badrum                   temp    11
+Sensor  5250847   mandolyn temperaturehumidity Badrum               humidity    50
+Sensor 13007668 fineoffset temperaturehumidity Ute                      temp     1
+Sensor 13007668 fineoffset temperaturehumidity Ute                  humidity    86
+Sensor  5168940 fineoffset temperaturehumidity Sovrum                   temp  10.5
+Sensor  5168940 fineoffset temperaturehumidity Sovrum               humidity    51
+Sensor 13007664 fineoffset temperaturehumidity Gäststuga                temp   1.6
+Sensor 13007664 fineoffset temperaturehumidity Gäststuga            humidity    79
+Sensor  5295878   mandolyn temperaturehumidity Krypgrund                temp   4.9
+Sensor  5295878   mandolyn temperaturehumidity Krypgrund            humidity    79
+....
