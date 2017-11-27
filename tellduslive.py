@@ -7,7 +7,7 @@ import sys
 import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
-from threading import Lock
+from threading import RLock
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
@@ -229,9 +229,8 @@ class Session:
                  host=None,
                  application=None,
                  listen=False,  # listen for local UDP broadcasts
-                 devices=None,  # mapping of local device ids and server device ids
                  callback=None):  # callback for asynchrounous sensor updates
-
+        
         if not(all([public_key,
                     private_key,
                     token,
@@ -240,7 +239,7 @@ class Session:
             raise ValueError('Missing configuration')
 
         self._state = {}
-        self._lock = Lock()
+        self._lock = RLock()
         self._session = (
             LocalAPISession(host, application, token) if host else
             LiveAPISession(public_key,
@@ -248,15 +247,57 @@ class Session:
                            token,
                            token_secret,
                            application))
+
         if listen:
-            local_device = listen if isinstance(listen, str) else host
+            host = host or (listen
+                            if isinstance(listen, str)
+                            else None)
+            self._setup_async_listener(host, callback)
 
-            def device_updated(what):
-                # map device id etc
-                callback()
+    def _setup_async_listener(self, host, callback):
+        """Starts listening for asynchronous UDP packets on the
+        local network. If host is None, autodiscovery will be used."""
+        
+        def got(packet):
+            """Callback when ascynhronous packet is received.
+            N.B. will be called in another thread."""
+            with self._lock:
+                local_id = (packet['protocol'],
+                            packet['model'],
+                            str(packet['sensorId']))
 
-            from tellsticknet import async_listen
-            async_listen(local_device, callback=device_updated)
+                _LOGGER.debug('Received asynchronous packet %s:%s:%s',
+                              *local_id)
+
+                sensor = next((sensor
+                               for sensor in self.sensors
+                               if ((sensor.protocol,
+                                    sensor.model,
+                                    str(sensor.sensorId)) == local_id)), None)
+                
+                if not sensor:
+                    _LOGGER.warning('Found no corresponding device on server'
+                                    'for packet %s:%s:%s', local_id)
+                    return
+                            
+                _LOGGER.debug('Got asynchronous update from sensor %s',
+                              sensor.name)
+
+                # update state
+                for updated_item in packet['data']:
+                    for item in sensor.device['data']:
+                        if item['name'] == updated_item['name']:
+                            _LOGGER.debug('updated %s from %s to %s',
+                                          item['name'],
+                                          item['value'],
+                                          updated_item['value'])
+                            item.update(value=updated_item['value'])
+
+                callback(sensor)
+                            
+        _LOGGER.info('Starting asynchronous listener thread')
+        from tellsticknet import async_listen
+        async_listen(host, callback=got)
 
     @property
     def authorize_url(self):
@@ -336,7 +377,10 @@ class Session:
             self._state = {}
 
             def collect(devices, is_sensor=False):
-                """Update local state."""
+                """Update local state.
+                N.B. We prefix sensors with '_', since apparently sensors and devices
+                do not share name space and there can be collissions.
+                FIXME: Remove this hack."""
                 self._state.update({'_' * is_sensor + str(device['id']): device
                                     for device in devices or {}
                                     if device['name']})
@@ -353,6 +397,14 @@ class Session:
     def device(self, device_id):
         """Return a device object."""
         return Device(self, device_id)
+
+    @property
+    def sensors(self):
+        """Return only sensors.
+        FIXME: terminology device vs device."""
+        return (device
+                for device in self.devices
+                if device.is_sensor)
 
     @property
     def devices(self):
@@ -376,12 +428,12 @@ class Device:
     def __str__(self):
         if self.is_sensor:
             items = ', '.join(str(item) for item in self.items)
-            return 'Sensor #{id:>08} {name:<20} ({items})'.format(
+            return 'Sensor #{id:>9} {name:<20} ({items})'.format(
                 id=self.device_id,
                 name=self.name or UNNAMED_DEVICE,
                 items=items)
         else:
-            return ('Device #{id} \'{name}\' '
+            return ('Device #{id:>9} {name:<20} '
                     '({state}:{value}) [{methods}]').format(
                         id=self.device_id,
                         name=self.name or UNNAMED_DEVICE,
@@ -391,8 +443,9 @@ class Device:
 
     def __getattr__(self, name):
         if (self.device and
-                name in ['name', 'state', 'battery',
-                         'lastUpdated', 'methods', 'data']):
+            name in ['name', 'state', 'battery',
+                     'model', 'protocol',
+                     'lastUpdated', 'methods', 'data', 'sensorId']):
             return self.device.get(name)
 
     @property
@@ -489,8 +542,8 @@ class Device:
         """Return sensor item."""
         return next((item for item in self.items
                      if (item.name == name and
-                         item.scale == scale)), None)
-
+                         int(item.scale) == int(scale))), None)
+    
     def value(self, name, scale):
         """Return value of sensor item."""
         return self.item(name, scale).value

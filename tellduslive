@@ -23,12 +23,37 @@ Options:
 
 import docopt
 import logging
+from sys import stderr
 from time import sleep
 
-from tellduslive import __version__, read_credentials, Session
+from tellduslive import (__version__, read_credentials, Session,
+                         TURNON, TURNOFF, UP, DOWN,
+                         BATTERY_LOW, BATTERY_OK, BATTERY_UNKNOWN)
 from tellsticknet.discovery import discover
 
 _LOGGER = logging.getLogger(__name__)
+
+LOGFMT = "%(asctime)s %(levelname)5s %(threadName)10s %(name)40s %(message)s"
+DATEFMT = "%H:%M.%S"
+
+STR_STATES = {
+    TURNON: 'On',
+    TURNOFF: 'Off',
+    UP: 'Up',
+    DOWN: 'Down',
+}
+
+def str_batt(battery):
+    if battery == BATTERY_LOW:
+        return 'low'
+    elif battery == BATTERY_UNKNOWN:
+        return '?'
+    elif battery == BATTERY_OK:
+        return 'ok'
+    elif battery == None:
+        return ''
+    else:
+        return battery
 
 def main():
     """Command line interface."""
@@ -42,8 +67,18 @@ def main():
     else:
         level=logging.ERROR
 
-    FORMAT = '%(asctime)s %(name)23s %(threadName)s %(message)s'
-    logging.basicConfig(level=level, format=FORMAT, datefmt='%H:%M:%S')
+    try:
+        import coloredlogs
+        coloredlogs.install(level=level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            fmt=LOGFMT)
+    except ImportError:
+        _LOGGER.debug("no colored logs. pip install coloredlogs?")
+        logging.basicConfig(level=level,
+                            stream=stderr,
+                            datefmt=DATEFMT,
+                            format=LOGFMT)
 
     credentials = read_credentials()
 
@@ -55,11 +90,12 @@ def main():
         credentials.update(host = host)
     elif args['-H']:
         credentials.update(host = args['-H'])
-
-    def callback():
-        print('Got asynchronous sensor update')
-
-    credentials.update(listen=True,
+        
+    def callback(device):
+        _LOGGER.info('Got asynchronous sensor update for %s', device.name)
+        list_devices()
+        
+    credentials.update(listen=args['-r'],
                        callback=callback)
 
     try:
@@ -70,15 +106,33 @@ def main():
     if not session.update():
         exit('Could not update status from server')
 
+    def list_devices():
+        print('Devices')
+        print('-' * 90)
+        for device in sorted(session.devices,
+                             key=lambda d: d.is_sensor):
+            #print(device)
+            if device.is_sensor:
+                for item in device.items:
+                    print('Sensor {id:>8} {id2:>3} {device.protocol:>10} {device.model:<19} '
+                          '{device.name:<20} {item.name:>8} {item.value:>5} {battery}'.format(
+                              id=device.device_id[1:],  # FIXME: Remove hack
+                              id2=device.sensorId,
+                              device=device,
+                              battery=str_batt(device.battery),
+                              item=item))
+            else:
+                print('Device {device.device_id:>8} {space:<34} '
+                      '{device.name:<20} {state:>14} {battery}'.format(
+                          device=device,
+                        space='',
+                          battery=str_batt(device.battery),
+                          state=STR_STATES.get(device.state, '?')))
+
     if args['list']:
         while True:
-            print('Devices')
-            print('-' * 60)
-            for device in session.devices:
-                print(device)
-                for item in device.items:
-                    print('- {}'.format(item))
-
+            list_devices()
+            
             if not args['-r']:
                 exit(0)
 
