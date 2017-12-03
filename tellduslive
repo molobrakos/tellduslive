@@ -45,11 +45,11 @@ STR_STATES = {
 
 def str_batt(battery):
     if battery == BATTERY_LOW:
-        return 'low'
+        return '\u2713'
     elif battery == BATTERY_UNKNOWN:
-        return '?'
+        return ''
     elif battery == BATTERY_OK:
-        return 'ok'
+        return '\u2713'
     elif battery == None:
         return ''
     else:
