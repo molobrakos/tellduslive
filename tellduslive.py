@@ -276,6 +276,9 @@ class Session:
                                     str(sensor.sensorId)) == local_id)), None)
                 
                 if not sensor:
+                    # FIXME: Let these through, meaning in HA, we can start
+                    # populate the dashboard with sensors even before authenticated
+                    # if autodiscovery is turned on
                     _LOGGER.warning('Found no corresponding device on server'
                                     'for packet %s:%s:%s', local_id)
                     return
@@ -284,6 +287,8 @@ class Session:
                               sensor.name)
 
                 # update state
+                # FIXME: we can just replace data attribute,
+                # but make sure that scale attribute is set (default to 0)
                 for updated_item in packet['data']:
                     for item in sensor.device['data']:
                         if item['name'] == updated_item['name']:
