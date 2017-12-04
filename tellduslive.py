@@ -231,6 +231,8 @@ class Session:
                  listen=False,  # listen for local UDP broadcasts
                  callback=None):  # callback for asynchrounous sensor updates
         
+        _LOGGER.info('%s version %s', __name__, __version__)
+
         if not(all([public_key,
                     private_key,
                     token,
