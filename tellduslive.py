@@ -319,7 +319,7 @@ class Session:
                 """Update local state."""
                 self._state.update({'_' * is_sensor + str(device['id']): device
                                     for device in devices or {}
-                                    if device['name']})
+                                    if device['name'] and not (is_sensor and 'data' not in device)})
 
             devices = self._request_devices()
             collect(devices)
