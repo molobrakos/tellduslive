@@ -11,7 +11,7 @@ from threading import Lock
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
-__version__ = '0.10.3'
+__version__ = '0.10.4'
 
 _LOGGER = logging.getLogger(__name__)
 
