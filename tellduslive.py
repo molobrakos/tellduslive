@@ -8,6 +8,7 @@ import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 from threading import RLock
+import tellsticklocal
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
@@ -217,6 +218,11 @@ class LiveAPISession(OAuth1Session):
         pass
 
 
+class LocalSession(tellsticklocal.Localnet):
+    def __init__(self, configfile):
+        super().__init__(configfile)
+
+
 class Session:
     """Tellduslive session."""
 
@@ -226,6 +232,7 @@ class Session:
                  private_key=None,
                  token=None,
                  token_secret=None,
+                 local=None, #local tellsticknet config path
                  host=None,
                  application=None,
                  listen=False,  # listen for local UDP broadcasts
@@ -237,13 +244,15 @@ class Session:
                     private_key,
                     token,
                     token_secret]) or
-               all([host, token])):
+               all([host, token]) or
+               all([local])):
             raise ValueError('Missing configuration')
 
         self._state = {}
         self._lock = RLock()
         self._session = (
-            LocalAPISession(host, application, token) if host else
+            LocalAPISession(host, application, token) if host else 
+            LocalSession(local) if local else 
             LiveAPISession(public_key,
                            private_key,
                            token,
@@ -578,7 +587,8 @@ def read_credentials():
                 return dict(
                     x.split(': ')
                     for x in config.read().strip().splitlines()
-                    if not x.startswith('#'))
+                    if not x.startswith('#') 
+                    if not x.startswith('local'))
         except OSError:
             continue
     return {}
