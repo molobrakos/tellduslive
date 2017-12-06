@@ -3,7 +3,7 @@
 import socket
 import logging
 import time
-from protocol import Protocol
+from tellsticknet.protocol import Protocol
 # pylint:disable=unused-wildcard-import
 from constants import *
 # pylint:disable=invalid-name
@@ -300,11 +300,13 @@ class Device(object):
         """ sets params """
         self._params = params
 
-    def setSensorValues(self, values):
+    def setSensorValues(self, vals):
         """ sets sensor values """
-        for key, value  in values.items():
-            self._LOGGER.debug("%s has value: %s", key, value)
-            self.setSensorValue(key, value, self._scale)
+        print (vals)
+        for values in vals: 
+            for key, value  in values.items():
+                self._LOGGER.debug("%s has value: %s", key, value)
+                self.setSensorValue(key, value, self._scale)
 
     def setSensorValue(self, valueType, value, scale):
         """ sets sensor value """

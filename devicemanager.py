@@ -8,6 +8,7 @@ from time import sleep
 from sys import stdout
 from device import Device
 from controller import Controller
+from tellsticknet.protocol import decode_packet
 
 
 
@@ -191,9 +192,9 @@ class Tellstick(object):
 
     def _events(self, controller):
         """ listens for events from telstick net """
-        for packet in controller.packets():
+        for packet in controller._controller.packets():
 
-            packet = controller.decode_packet(packet)
+            packet = decode_packet(packet)
             if packet is None:
                 continue  # timeout
 
