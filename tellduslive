@@ -12,6 +12,7 @@ Usage:
 
 Options:
   -H <host>         Host
+  -L <config.yml>   Config file for local telsticknet 
   -D                Autodiscover host
   -r                Repeat polling until stopped
   -d <DELAY>        Delay between polling [default: 5]
@@ -93,7 +94,9 @@ def main():
         credentials.update(host = host)
     elif args['-H']:
         credentials.update(host = args['-H'])
-        
+    elif args['-L']:
+        credentials.update(local = args['-L'])
+         
     def callback(device):
         _LOGGER.info('Got asynchronous sensor update for %s', device.name)
         list_devices()
