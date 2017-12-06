@@ -303,8 +303,11 @@ class Session:
                 callback(sensor)
                             
         _LOGGER.info('Starting asynchronous listener thread')
-        from tellsticknet import async_listen
-        async_listen(host, callback=got)
+        try:
+            from tellsticknet import async_listen
+            async_listen(host, callback=got)
+        except ImportError:
+            _LOGGER.warning('Could not load tellsticknet library')
 
     @property
     def authorize_url(self):
