@@ -5,9 +5,20 @@ Moduele interfaces with tellstick net v1
 # pylint:disable=invalid-name
 import logging
 from json import JSONEncoder
-import devicemanager
+from tellsticknet import devicemanager
 # pylint:disable=unused-wildcard-import
-from constants import *
+TELLDUS_LOCAL_URL = 'http://tellstick/'
+TURNON = 1
+TURNOFF = 2
+BELL = 4
+TOGGLE = 8
+DIM = 16
+LEARN = 32
+UP = 128
+DOWN = 256
+STOP = 512
+RGBW = 1024
+THERMOSTAT = 2048
 
 
 class Localnet(object):
