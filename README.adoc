@@ -23,3 +23,5 @@ Sensor 13007664 fineoffset temperaturehumidity Gäststuga            humidity   
 Sensor  5295878   mandolyn temperaturehumidity Krypgrund                temp   4.9
 Sensor  5295878   mandolyn temperaturehumidity Krypgrund            humidity    79
 ....
+
+
