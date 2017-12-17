@@ -8,7 +8,6 @@ import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 from threading import RLock
-import tellsticklocal
 
 sys.version_info >= (3, 0) or exit('Python 3 required')
 
@@ -218,11 +217,106 @@ class LiveAPISession(OAuth1Session):
         pass
 
 
-class LocalSession(tellsticklocal.Localnet):
-    def __init__(self, configfile):
-        super().__init__(configfile)
+class LocalUDPSession():
+    TELLSTICK_SUCCESS = 0
+    TELLSTICK_ERROR_DEVICE_NOT_FOUND = -3
+    TELLSTICK_ERROR_UNKNOWN = -99
+
+    def __init__(self, devicemanager, logger=None):
+        self._request = None
+        self._LOGGER = logger or logging.getLogger(__name__)
+        self.devicemanager = devicemanager
+        self.response = None
+        self._exception = None
+        self.status_code = None
+        self.headers = {}
+        self._json = None
+        self.url = 'http://tellstick/' 
+        self.authorized = True
+
+    def __str__(self):
+        return self.response
+
+    def devices(self, *args, params=None, timeout=None):
+        """ creates device json """
+        if args[0] == "list":
+            devices = {"device" :self.devicemanager.listdevices()}
+            self._LOGGER.debug("Devices: %s: ", devices)
+            self._json = devices
+            return self.TELLSTICK_SUCCESS
+        else:
+            self._json = {"error": "Internal server error"}
+            raise AttributeError
+
+    def sensors(self, *args, params=None, timeout=None):
+        """ creates sensor json """
+        if args[0] == "list":
+            sensor = {"sensor" : self.devicemanager.listsensors()}
+            self._LOGGER.debug("Sensor: %s: ", sensor)
+            self._json = sensor
+            return self.TELLSTICK_SUCCESS
+        else:
+            self._json = {"error": "Internal server error"}
+            raise AttributeError
+
+    def device(self, *args, params=None, timeout=None):
+        """ runnns command on device """
+        self._LOGGER.debug("Device id: %s ", params['id'])
+        d = self.devicemanager.device(params['id'])
+        self._LOGGER.debug("Got device: %s ", d)
+        if d.isDevice():
+            if args[0] == "turnOn":
+                d.command(TURNON)
+                self._json = {"status":"success"}
+                return self.TELLSTICK_SUCCESS
+
+            elif args[0] == "turnOff":
+                d.command(TURNOFF)
+                self._json = {"status":"success"}
+                return self.TELLSTICK_SUCCESS
+            else:
+                self._json = {"error": "Internal server error"}
+                raise AttributeError
+        else:
+            self._json = {"error": "Internal server error"}
+            raise AttributeError
 
 
+
+    def get(self, url, params=None, timeout=None):
+        """ request get faker """
+        self._LOGGER.debug("url: %s: ", url)
+        self._request = url[len(self.url):].split('/')
+        self._LOGGER.debug("get() _request[0]: %s: ", self._request[0])
+        self._LOGGER.debug("get() _request[1:]: %s: ", self._request[1:])
+        self._LOGGER.debug("get() params: %s: ", params)
+        self.headers['content-type'] = "application/json; charset=utf-8"
+        try:
+            self.response = getattr(self,
+                                    "%s" % self._request[0])(*self._request[1:],
+                                                             params=params, timeout=timeout)
+        except AttributeError:
+            self._exception = "500 Internal server error %s"% self._request
+            self.status_code = 500
+            self._json = {"error": "Internal server error"}
+            return self
+        self.status_code = 200
+        return self
+
+    @staticmethod
+    def raise_for_status():
+        """ pass status exception """
+        pass
+
+    def json(self):
+        """ returns json """
+        return self._json
+
+    @staticmethod
+    def maybe_refresh_token():
+        """Refresh access_token if expired."""
+        pass
+    
 class Session:
     """Tellduslive session."""
 
@@ -236,84 +330,109 @@ class Session:
                  host=None,
                  application=None,
                  listen=False,  # listen for local UDP broadcasts
-                 callback=None):  # callback for asynchrounous sensor updates
-        
-        _LOGGER.info('%s version %s', __name__, __version__)
+                 callback=None,  # callback for asynchrounous sensor updates
+                 config=None): # pass config for localUDPSession and async_listner
 
+        _LOGGER.info('%s version %s', __name__, __version__)
         if not(all([public_key,
                     private_key,
                     token,
                     token_secret]) or
+               all([listen]) or
                all([host, token]) or
-               all([local])):
+               all([host, listen])):  
             raise ValueError('Missing configuration')
 
         self._state = {}
         self._lock = RLock()
+
+        host = host or (listen
+                        if isinstance(listen, str)
+                        else None)
+
+        if listen:
+            from tellsticknet import devicemanager
+            self._devicemanager = devicemanager.Tellstick(host=host, logger=_LOGGER, config=config)
+
         self._session = (
-            LocalAPISession(host, application, token) if host else 
-            LocalSession(local) if local else 
+            LocalAPISession(host, application, token) if host and token and not public_key else 
             LiveAPISession(public_key,
                            private_key,
                            token,
                            token_secret,
-                           application))
+                           application) if public_key and private_key and token and token_secret else
+            LocalUDPSession(self._devicemanager))
 
         if listen:
-            host = host or (listen
-                            if isinstance(listen, str)
-                            else None)
-            self._setup_async_listener(host, callback)
+            _LOGGER.debug("Callback functions is: %s", callback)
+            self._setup_async_listener(self._devicemanager, callback)
 
-    def _setup_async_listener(self, host, callback):
+    def _setup_async_listener(self, devicemanager, callback):
         """Starts listening for asynchronous UDP packets on the
         local network. If host is None, autodiscovery will be used."""
-        
-        def got(packet):
+        def got(device):
             """Callback when ascynhronous packet is received.
             N.B. will be called in another thread."""
             with self._lock:
-                local_id = (packet['protocol'],
-                            packet['model'],
-                            str(packet['sensorId']))
+                """ check i device is a sensor """
+                if 'sensorId' in device:
+                    local_id = (device['protocol'],
+                                device['model'],
+                                str(device['sensorId']))
+                    _LOGGER.debug('Received asynchronous packet %s:%s:%s',
+                                  *local_id)
+                    _LOGGER.debug('Received asynchronous data %s from %s', device['data'], local_id)
+    
+                    sensor = next((sensor
+                                   for sensor in self.sensors
+                                   if ((sensor.protocol,
+                                        sensor.model,
+                                        str(sensor.sensorId)) == local_id)), None)
+                    
+                    if not sensor:
+                        _LOGGER.info('Found no corresponding device on server'
+                                    'for packet %s:%s:%s %s', *local_id,
+                                    'new sensor added')
+                        self._state.update({'_' + str(device['id']): device})
 
-                _LOGGER.debug('Received asynchronous packet %s:%s:%s',
-                              *local_id)
-
-                sensor = next((sensor
-                               for sensor in self.sensors
-                               if ((sensor.protocol,
-                                    sensor.model,
-                                    str(sensor.sensorId)) == local_id)), None)
-                
-                if not sensor:
-                    # FIXME: Let these through, meaning in HA, we can start
-                    # populate the dashboard with sensors even before authenticated
-                    # if autodiscovery is turned on
-                    _LOGGER.warning('Found no corresponding device on server'
-                                    'for packet %s:%s:%s', local_id)
-                    return
+                        sensor = next((sensor
+                                       for sensor in self.sensors
+                                       if ((sensor.protocol,
+                                            sensor.model,
+                                            str(sensor.sensorId)) == local_id)), None)
                             
-                _LOGGER.debug('Got asynchronous update from sensor %s',
+                    _LOGGER.debug('Got asynchronous update from sensor %s',
                               sensor.name)
 
-                # update state
-                # FIXME: we can just replace data attribute,
-                # but make sure that scale attribute is set (default to 0)
-                for updated_item in packet['data']:
-                    for item in sensor.device['data']:
-                        if item['name'] == updated_item['name']:
-                            _LOGGER.debug('updated %s from %s to %s',
-                                          item['name'],
-                                          item['value'],
-                                          updated_item['value'])
-                            item.update(value=updated_item['value'])
-
-                callback(sensor)
+                    sensor.device.update({"data": device['data']})
+                    callback(sensor.device)
+                else:
+                    local_id = device['id']
                             
+                    _LOGGER.debug('Received asynchronous packet %s',
+                                  *local_id)
+                    _LOGGER.debug('Received asynchronous data %s from %s', device, local_id)
+                    dev = next((dev
+                                for dev in self.devices
+                                if (dev.device_id == local_id)), None)
+                    if not dev:
+                        _LOGGER.info('Found no corresponding device on server'
+                                    'for packet %s %s', *local_id,
+                                    'new device  added')
+                        self._state.update({str(device['id']): device})
+
+                        dev = next((dev
+                                    for dev in self.devices
+                                    if (dev.device_id == local_id)), None)
+ 
+                    _LOGGER.debug('Got asynchronous update from device %s',
+                              dev.id)
+                    dev.device.update(device)
+                    callback(dev.device)
+
         _LOGGER.info('Starting asynchronous listener thread')
-        from tellsticknet import async_listen
-        async_listen(host, callback=got)
+        devicemanager.async_listen(callback=got)
+        
 
     @property
     def authorize_url(self):
