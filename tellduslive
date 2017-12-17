@@ -94,30 +94,23 @@ def main():
         credentials.update(host = host)
     elif args['-H']:
         credentials.update(host = args['-H'])
-    elif args['-L']:
-        credentials.update(local = args['-L'])
-         
-    def callback(device):
-        _LOGGER.info('Got asynchronous sensor update for %s', device.name)
-        list_devices()
-        
-    credentials.update(listen=args['-r'],
-                       callback=callback)
-
-    try:
-        session = Session(**credentials)
-    except ValueError as e:
-        exit(e)
-
-    if not session.update():
-        exit('Could not update status from server')
+    if args['-L']:
+        import yaml
+        config_file = args['-L']
+        _LOGGER.debug("tellstik config file = %s", config_file)
+        with open(config_file, 'r') as stream:
+            try:
+                _config = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        credentials.update(config = _config)
+  
 
     def list_devices():
         print('Devices')
         print('-' * 90)
         for device in sorted(session.devices,
                              key=lambda d: d.is_sensor):
-            #print(device)
             if device.is_sensor:
                 for item in device.items:
                     print('Sensor {id:>8} {id2:>3} {device.protocol:>10} {device.model:<19} '
@@ -135,6 +128,20 @@ def main():
                           battery=str_batt(device.battery),
                           state=STR_STATES.get(device.state, '?')))
 
+    def callback(device):
+        #_LOGGER.info('Got asynchronous sensor update for %s', device.name)
+        list_devices()
+        
+    credentials.update(listen=args['-r'],
+                       callback=callback)
+
+    try:
+        session = Session(**credentials)
+    except ValueError as e:
+        exit(e)
+
+    if not session.update():
+        exit('Could not update status from server')
     if args['list']:
         while True:
             list_devices()
