@@ -227,9 +227,7 @@ class Session:
                  token=None,
                  token_secret=None,
                  host=None,
-                 application=None,
-                 listen=False,  # listen for local UDP broadcasts
-                 callback=None):  # callback for asynchrounous sensor updates
+                 application=None)
         
         _LOGGER.info('%s version %s', __name__, __version__)
 
@@ -249,65 +247,6 @@ class Session:
                            token,
                            token_secret,
                            application))
-
-        if listen:
-            host = host or (listen
-                            if isinstance(listen, str)
-                            else None)
-            self._setup_async_listener(host, callback)
-
-    def _setup_async_listener(self, host, callback):
-        """Starts listening for asynchronous UDP packets on the
-        local network. If host is None, autodiscovery will be used."""
-        
-        def got(packet):
-            """Callback when ascynhronous packet is received.
-            N.B. will be called in another thread."""
-            with self._lock:
-                local_id = (packet['protocol'],
-                            packet['model'],
-                            str(packet['sensorId']))
-
-                _LOGGER.debug('Received asynchronous packet %s:%s:%s',
-                              *local_id)
-
-                sensor = next((sensor
-                               for sensor in self.sensors
-                               if ((sensor.protocol,
-                                    sensor.model,
-                                    str(sensor.sensorId)) == local_id)), None)
-                
-                if not sensor:
-                    # FIXME: Let these through, meaning in HA, we can start
-                    # populate the dashboard with sensors even before authenticated
-                    # if autodiscovery is turned on
-                    _LOGGER.warning('Found no corresponding device on server'
-                                    'for packet %s:%s:%s', local_id)
-                    return
-                            
-                _LOGGER.debug('Got asynchronous update from sensor %s',
-                              sensor.name)
-
-                # update state
-                # FIXME: we can just replace data attribute,
-                # but make sure that scale attribute is set (default to 0)
-                for updated_item in packet['data']:
-                    for item in sensor.device['data']:
-                        if item['name'] == updated_item['name']:
-                            _LOGGER.debug('updated %s from %s to %s',
-                                          item['name'],
-                                          item['value'],
-                                          updated_item['value'])
-                            item.update(value=updated_item['value'])
-
-                callback(sensor)
-                            
-        _LOGGER.info('Starting asynchronous listener thread')
-        try:
-            from tellsticknet import async_listen
-            async_listen(host, callback=got)
-        except ImportError:
-            _LOGGER.warning('Could not load tellsticknet library')
 
     @property
     def authorize_url(self):
