@@ -227,7 +227,7 @@ class Session:
                  token=None,
                  token_secret=None,
                  host=None,
-                 application=None)
+                 application=None):
         
         _LOGGER.info('%s version %s', __name__, __version__)
 
