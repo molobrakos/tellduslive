@@ -343,6 +343,11 @@ class Session:
             return (devices is not None and
                     sensors is not None)
 
+    def get_clients(self):
+        """Request list of clients (Telldus devices) from server."""
+        res = self._request('clients/list')
+        return res.get('client') if res else None
+
     def device(self, device_id):
         """Return a device object."""
         return Device(self, device_id)
