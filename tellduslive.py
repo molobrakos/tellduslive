@@ -343,6 +343,11 @@ class Session:
             return (devices is not None and
                     sensors is not None)
 
+    def request_info(self, device_id):
+        """Request device info."""
+        res = self._request('device/info', id=device_id)
+        return res if res else None
+
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
         res = self._request('clients/list')
@@ -460,6 +465,12 @@ class Device:
             return int(self.statevalue)
         except (TypeError, ValueError):
             return None
+
+    def info(self):
+        """Retrive device info."""
+        if self.is_sensor:
+            return self.device
+        return self._session.request_info(self.device_id)
 
     def turn_on(self):
         """Turn device on."""
