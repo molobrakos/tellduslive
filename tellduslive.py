@@ -408,6 +408,11 @@ class Device:
             return self.device.get(name)
 
     @property
+    def is_online(self):
+        """Return online status."""
+        return self.device.get('online') == '1'
+
+    @property
     def device(self):
         """Return the raw representation of the device."""
         # pylint: disable=protected-access
