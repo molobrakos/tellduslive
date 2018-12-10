@@ -9,24 +9,24 @@ from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
 from threading import RLock
 
-sys.version_info >= (3, 0) or exit('Python 3 required')
+sys.version_info >= (3, 0) or exit("Python 3 required")
 
-__version__ = '0.10.8'
+__version__ = "0.10.8"
 
 _LOGGER = logging.getLogger(__name__)
 
-TELLDUS_LIVE_API_URL = 'https://api.telldus.com/json/'
-TELLDUS_LIVE_REQUEST_TOKEN_URL = 'https://api.telldus.com/oauth/requestToken'
-TELLDUS_LIVE_AUTHORIZE_URL = 'https://api.telldus.com/oauth/authorize'
-TELLDUS_LIVE_ACCESS_TOKEN_URL = 'https://api.telldus.com/oauth/accessToken'
+TELLDUS_LIVE_API_URL = "https://api.telldus.com/json/"
+TELLDUS_LIVE_REQUEST_TOKEN_URL = "https://api.telldus.com/oauth/requestToken"
+TELLDUS_LIVE_AUTHORIZE_URL = "https://api.telldus.com/oauth/authorize"
+TELLDUS_LIVE_ACCESS_TOKEN_URL = "https://api.telldus.com/oauth/accessToken"
 
-TELLDUS_LOCAL_API_URL = 'http://{host}/api/'
-TELLDUS_LOCAL_REQUEST_TOKEN_URL = 'http://{host}/api/token'
-TELLDUS_LOCAL_REFRESH_TOKEN_URL = 'http://{host}/api/refreshToken'
+TELLDUS_LOCAL_API_URL = "http://{host}/api/"
+TELLDUS_LOCAL_REQUEST_TOKEN_URL = "http://{host}/api/token"
+TELLDUS_LOCAL_REFRESH_TOKEN_URL = "http://{host}/api/refreshToken"
 
 TIMEOUT = timedelta(seconds=10)
 
-UNNAMED_DEVICE = 'NO NAME'
+UNNAMED_DEVICE = "NO NAME"
 
 # Tellstick methods
 # pylint:disable=invalid-name
@@ -42,53 +42,46 @@ STOP = 512
 RGBW = 1024
 THERMOSTAT = 2048
 
-SUPPORTED_METHODS = (
-    TURNON |
-    TURNOFF |
-    DIM |
-    UP |
-    DOWN |
-    STOP)
+SUPPORTED_METHODS = TURNON | TURNOFF | DIM | UP | DOWN | STOP
 
 METHODS = {
-    TURNON: 'turnOn',
-    TURNOFF: 'turnOff',
-    BELL: 'bell',
-    TOGGLE: 'toggle',
-    DIM: 'dim',
-    LEARN: 'learn',
-    UP: 'up',
-    DOWN: 'down',
-    STOP: 'stop',
-    RGBW: 'rgbw',
-    THERMOSTAT: 'thermostat'
+    TURNON: "turnOn",
+    TURNOFF: "turnOff",
+    BELL: "bell",
+    TOGGLE: "toggle",
+    DIM: "dim",
+    LEARN: "learn",
+    UP: "up",
+    DOWN: "down",
+    STOP: "stop",
+    RGBW: "rgbw",
+    THERMOSTAT: "thermostat",
 }
 
 # Sensor types
-TEMPERATURE = 'temperature'
-HUMIDITY = 'humidity'
-RAINRATE = 'rrate'
-RAINTOTAL = 'rtot'
-WINDDIRECTION = 'wdir'
-WINDAVERAGE = 'wavg'
-WINDGUST = 'wgust'
-UV = 'uv'
-WATT = 'watt'
-LUMINANCE = 'lum'
-DEW_POINT = 'dewp'
-BAROMETRIC_PRESSURE = 'barpress'
+TEMPERATURE = "temperature"
+HUMIDITY = "humidity"
+RAINRATE = "rrate"
+RAINTOTAL = "rtot"
+WINDDIRECTION = "wdir"
+WINDAVERAGE = "wavg"
+WINDGUST = "wgust"
+UV = "uv"
+WATT = "watt"
+LUMINANCE = "lum"
+DEW_POINT = "dewp"
+BAROMETRIC_PRESSURE = "barpress"
 
 BATTERY_LOW = 255
 BATTERY_UNKNOWN = 254
 BATTERY_OK = 253
 
-SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
+SUPPORTS_LOCAL_API = ["TellstickZnet", "TellstickNetV2"]
 
 
 def supports_local_api(device):
     """Return true if the device supports local access."""
-    return any(dev in device
-               for dev in SUPPORTS_LOCAL_API)
+    return any(dev in device for dev in SUPPORTS_LOCAL_API)
 
 
 class LocalAPISession(requests.Session):
@@ -104,7 +97,8 @@ class LocalAPISession(requests.Session):
         self.access_token = access_token
         if access_token:
             self.headers.update(
-                {'Authorization': 'Bearer {}'.format(self.access_token)})
+                {"Authorization": "Bearer {}".format(self.access_token)}
+            )
             self.refresh_access_token()
 
     @property
@@ -113,14 +107,15 @@ class LocalAPISession(requests.Session):
         try:
             response = self.put(
                 TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
-                data={'app': self._application},
-                timeout=TIMEOUT.seconds)
+                data={"app": self._application},
+                timeout=TIMEOUT.seconds,
+            )
             response.raise_for_status()
             result = response.json()
-            self.request_token = result.get('token')
-            return result.get('authUrl')
+            self.request_token = result.get("token")
+            return result.get("authUrl")
         except (OSError, ValueError) as e:
-            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
+            _LOGGER.error("Failed to retrieve authorization URL: %s", e)
 
     def authorize(self):
         """Perform authorization."""
@@ -128,34 +123,37 @@ class LocalAPISession(requests.Session):
             response = self.get(
                 TELLDUS_LOCAL_REQUEST_TOKEN_URL.format(host=self._host),
                 params=dict(token=self.request_token),
-                timeout=TIMEOUT.seconds)
+                timeout=TIMEOUT.seconds,
+            )
             response.raise_for_status()
             result = response.json()
-            if 'token' in result:
-                self.access_token = result['token']
+            if "token" in result:
+                self.access_token = result["token"]
                 self.headers.update(
-                    {'Authorization': 'Bearer {}'.format(self.access_token)})
+                    {"Authorization": "Bearer {}".format(self.access_token)}
+                )
                 self.token_timestamp = datetime.now()
-                token_expiry = datetime.fromtimestamp(result.get('expires'))
-                _LOGGER.debug('Token expires %s', token_expiry)
+                token_expiry = datetime.fromtimestamp(result.get("expires"))
+                _LOGGER.debug("Token expires %s", token_expiry)
                 return True
         except OSError as e:
-            _LOGGER.error('Failed to authorize: %s', e)
+            _LOGGER.error("Failed to authorize: %s", e)
 
     def refresh_access_token(self):
         """Refresh api token"""
         try:
             response = self.get(
-                TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host))
+                TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host)
+            )
             response.raise_for_status()
             result = response.json()
-            self.access_token = result.get('token')
+            self.access_token = result.get("token")
             self.token_timestamp = datetime.now()
-            token_expiry = datetime.fromtimestamp(result.get('expires'))
-            _LOGGER.debug('Token expires %s', token_expiry)
+            token_expiry = datetime.fromtimestamp(result.get("expires"))
+            _LOGGER.debug("Token expires %s", token_expiry)
             return True
         except OSError as e:
-            _LOGGER.error('Failed to refresh access token: %s', e)
+            _LOGGER.error("Failed to refresh access token: %s", e)
 
     def authorized(self):
         """Return true if successfully authorized."""
@@ -173,44 +171,48 @@ class LiveAPISession(OAuth1Session):
     """Connection to the cloud service."""
 
     # pylint: disable=too-many-arguments
-    def __init__(self,
-                 public_key,
-                 private_key,
-                 token=None,
-                 token_secret=None,
-                 application=None):
+    def __init__(
+        self,
+        public_key,
+        private_key,
+        token=None,
+        token_secret=None,
+        application=None,
+    ):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
         self.access_token = None
         self.access_token_secret = None
         if application:
-            self.headers.update({'X-Application': application})
+            self.headers.update({"X-Application": application})
 
     @property
     def authorize_url(self):
         """Retrieve URL for authorization."""
-        _LOGGER.debug('Fetching request token')
+        _LOGGER.debug("Fetching request token")
         try:
             self.fetch_request_token(
-                TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds)
-            _LOGGER.debug('Got request token')
+                TELLDUS_LIVE_REQUEST_TOKEN_URL, timeout=TIMEOUT.seconds
+            )
+            _LOGGER.debug("Got request token")
             return self.authorization_url(TELLDUS_LIVE_AUTHORIZE_URL)
         except (OSError, ValueError) as e:
-            _LOGGER.error('Failed to retrieve authorization URL: %s', e)
+            _LOGGER.error("Failed to retrieve authorization URL: %s", e)
 
     def authorize(self):
         """Perform authorization."""
         try:
-            _LOGGER.debug('Fetching access token')
+            _LOGGER.debug("Fetching access token")
             token = self._fetch_token(
-                TELLDUS_LIVE_ACCESS_TOKEN_URL, timeout=TIMEOUT.seconds)
-            _LOGGER.debug('Got access token')
-            self.access_token = token['oauth_token']
-            self.access_token_secret = token['oauth_token_secret']
-            _LOGGER.debug('Authorized: %s', self.authorized)
+                TELLDUS_LIVE_ACCESS_TOKEN_URL, timeout=TIMEOUT.seconds
+            )
+            _LOGGER.debug("Got access token")
+            self.access_token = token["oauth_token"]
+            self.access_token_secret = token["oauth_token_secret"]
+            _LOGGER.debug("Authorized: %s", self.authorized)
             return self.authorized
         except (OSError, ValueError) as e:
-            _LOGGER.error('Failed to authorize: %s', e)
+            _LOGGER.error("Failed to authorize: %s", e)
 
     def maybe_refresh_token(self):
         """Refresh access_token if expired."""
@@ -221,33 +223,34 @@ class Session:
     """Tellduslive session."""
 
     # pylint: disable=too-many-arguments
-    def __init__(self,
-                 public_key=None,
-                 private_key=None,
-                 token=None,
-                 token_secret=None,
-                 host=None,
-                 application=None):
-        
-        _LOGGER.info('%s version %s', __name__, __version__)
+    def __init__(
+        self,
+        public_key=None,
+        private_key=None,
+        token=None,
+        token_secret=None,
+        host=None,
+        application=None,
+    ):
 
-        if not(all([public_key,
-                    private_key,
-                    token,
-                    token_secret]) or
-               all([public_key, private_key]) or
-               all([host, token])):
-            raise ValueError('Missing configuration')
+        _LOGGER.info("%s version %s", __name__, __version__)
+
+        if not (
+            all([public_key, private_key, token, token_secret])
+            or all([public_key, private_key])
+            or all([host, token])
+        ):
+            raise ValueError("Missing configuration")
 
         self._state = {}
         self._lock = RLock()
         self._session = (
-            LocalAPISession(host, application, token) if host else
-            LiveAPISession(public_key,
-                           private_key,
-                           token,
-                           token_secret,
-                           application))
+            LocalAPISession(host, application, token)
+            if host
+            else LiveAPISession(
+                public_key, private_key, token, token_secret, application
+            )
+        )
 
     @property
     def authorize_url(self):
@@ -283,42 +286,45 @@ class Session:
         try:
             self._session.maybe_refresh_token()
             url = urljoin(self._session.url, path)
-            _LOGGER.debug('Request %s %s', url, params)
-            response = self._session.get(url,
-                                         params=params,
-                                         timeout=TIMEOUT.seconds)
+            _LOGGER.debug("Request %s %s", url, params)
+            response = self._session.get(
+                url, params=params, timeout=TIMEOUT.seconds
+            )
             response.raise_for_status()
-            _LOGGER.debug('Response %s %s %s',
-                          response.status_code,
-                          response.headers['content-type'],
-                          response.json())
+            _LOGGER.debug(
+                "Response %s %s %s",
+                response.status_code,
+                response.headers["content-type"],
+                response.json(),
+            )
             response = response.json()
-            if 'error' in response:
-                raise OSError(response['error'])
+            if "error" in response:
+                raise OSError(response["error"])
             return response
         except OSError as error:
-            _LOGGER.warning('Failed request: %s', error)
+            _LOGGER.warning("Failed request: %s", error)
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
         with self._lock:
             response = self._request(method, **params)
-            return response and response.get('status') == 'success'
+            return response and response.get("status") == "success"
 
     def _request_devices(self):
         """Request list of devices from server."""
-        res = self._request('devices/list',
-                            supportedMethods=SUPPORTED_METHODS,
-                            includeIgnored=0)
-        return res.get('device') if res else None
+        res = self._request(
+            "devices/list",
+            supportedMethods=SUPPORTED_METHODS,
+            includeIgnored=0,
+        )
+        return res.get("device") if res else None
 
     def _request_sensors(self):
         """Request list of sensors from server."""
-        res = self._request('sensors/list',
-                            includeValues=1,
-                            includeScale=1,
-                            includeIgnored=0)
-        return res.get('sensor') if res else None
+        res = self._request(
+            "sensors/list", includeValues=1, includeScale=1, includeIgnored=0
+        )
+        return res.get("sensor") if res else None
 
     def update(self):
         """Updates all devices and sensors from server."""
@@ -328,12 +334,18 @@ class Session:
 
             def collect(devices, is_sensor=False):
                 """Update local state.
-                N.B. We prefix sensors with '_', since apparently sensors and devices
-                do not share name space and there can be collissions.
+                N.B. We prefix sensors with '_', since apparently sensors
+                and devices do not share name space and there can be
+                collissions.
                 FIXME: Remove this hack."""
-                self._state.update({'_' * is_sensor + str(device['id']): device
-                                    for device in devices or {}
-                                    if device['name'] and not (is_sensor and 'data' not in device)})
+                self._state.update(
+                    {
+                        "_" * is_sensor + str(device["id"]): device
+                        for device in devices or {}
+                        if device["name"]
+                        and not (is_sensor and "data" not in device)
+                    }
+                )
 
             devices = self._request_devices()
             collect(devices)
@@ -341,18 +353,17 @@ class Session:
             sensors = self._request_sensors()
             collect(sensors, True)
 
-            return (devices is not None and
-                    sensors is not None)
+            return devices is not None and sensors is not None
 
     def request_info(self, device_id):
         """Request device info."""
-        res = self._request('device/info', id=device_id)
+        res = self._request("device/info", id=device_id)
         return res if res else None
 
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
-        res = self._request('clients/list')
-        return res.get('client') if res else None
+        res = self._request("clients/list")
+        return res.get("client") if res else None
 
     def device(self, device_id):
         """Return a device object."""
@@ -362,9 +373,7 @@ class Session:
     def sensors(self):
         """Return only sensors.
         FIXME: terminology device vs device."""
-        return (device
-                for device in self.devices
-                if device.is_sensor)
+        return (device for device in self.devices if device.is_sensor)
 
     @property
     def devices(self):
@@ -387,31 +396,41 @@ class Device:
 
     def __str__(self):
         if self.is_sensor:
-            items = ', '.join(str(item) for item in self.items)
-            return 'Sensor #{id:>9} {name:<20} ({items})'.format(
+            items = ", ".join(str(item) for item in self.items)
+            return "Sensor #{id:>9} {name:<20} ({items})".format(
                 id=self.device_id,
                 name=self.name or UNNAMED_DEVICE,
-                items=items)
+                items=items,
+            )
         else:
-            return ('Device #{id:>9} {name:<20} '
-                    '({state}:{value}) [{methods}]').format(
-                        id=self.device_id,
-                        name=self.name or UNNAMED_DEVICE,
-                        state=self._str_methods(self.state),
-                        value=self.statevalue,
-                        methods=self._str_methods(self.methods))
+            return (
+                "Device #{id:>9} {name:<20} " "({state}:{value}) [{methods}]"
+            ).format(
+                id=self.device_id,
+                name=self.name or UNNAMED_DEVICE,
+                state=self._str_methods(self.state),
+                value=self.statevalue,
+                methods=self._str_methods(self.methods),
+            )
 
     def __getattr__(self, name):
-        if (self.device and
-            name in ['name', 'state', 'battery',
-                     'model', 'protocol',
-                     'lastUpdated', 'methods', 'data', 'sensorId']):
+        if self.device and name in [
+            "name",
+            "state",
+            "battery",
+            "model",
+            "protocol",
+            "lastUpdated",
+            "methods",
+            "data",
+            "sensorId",
+        ]:
             return self.device.get(name)
 
     @property
     def is_online(self):
         """Return online status."""
-        return self.device.get('online') == '1'
+        return self.device.get("online") == "1"
 
     @property
     def device(self):
@@ -437,27 +456,26 @@ class Device:
         """Send command to server and update local state."""
         params.update(id=self.device_id)
         # Corresponding API methods
-        method = 'device/{}'.format(METHODS[command])
+        method = "device/{}".format(METHODS[command])
         if self._session.execute(method, **params):
-            self.device['state'] = command
+            self.device["state"] = command
             return True
 
     @property
     def is_sensor(self):
         """Return true if this is a sensor."""
-        return 'data' in self.device
+        return "data" in self.device
 
     @property
     def statevalue(self):
         """State value of device."""
-        val = self.device.get('statevalue')
-        return val if val and val != 'unde' else 0
+        val = self.device.get("statevalue")
+        return val if val and val != "unde" else 0
 
     @property
     def is_on(self):
         """Return true if device is on."""
-        return (self.state == TURNON or
-                self.state == DIM)
+        return self.state == TURNON or self.state == DIM
 
     @property
     def is_down(self):
@@ -489,7 +507,7 @@ class Device:
     def dim(self, level):
         """Dim device."""
         if self._execute(DIM, level=level):
-            self.device['statevalue'] = level
+            self.device["statevalue"] = level
             return True
 
     def up(self):
@@ -511,10 +529,15 @@ class Device:
 
     def item(self, name, scale):
         """Return sensor item."""
-        return next((item for item in self.items
-                     if (item.name == name and
-                         int(item.scale) == int(scale))), None)
-    
+        return next(
+            (
+                item
+                for item in self.items
+                if (item.name == name and int(item.scale) == int(scale))
+            ),
+            None,
+        )
+
     def value(self, name, scale):
         """Return value of sensor item."""
         return self.item(name, scale).value
@@ -523,40 +546,39 @@ class Device:
 class SensorItem:
     # pylint: disable=too-few-public-methods, no-member
     """Reference to a sensor data item."""
+
     def __init__(self, data):
         vars(self).update(data)
 
     def __str__(self):
-        return '{name}={value}'.format(
-            name=self.name, value=self.value)
+        return "{name}={value}".format(name=self.name, value=self.value)
 
 
 def read_credentials():
     from sys import argv
     from os.path import join, dirname, expanduser
-    for directory in [
-            dirname(argv[0]),
-            expanduser('~')]:
+
+    for directory in [dirname(argv[0]), expanduser("~")]:
         try:
-            with open(join(directory, '.tellduslive.conf')) as config:
+            with open(join(directory, ".tellduslive.conf")) as config:
                 return dict(
-                    x.split(': ')
+                    x.split(": ")
                     for x in config.read().strip().splitlines()
-                    if not x.startswith('#'))
+                    if not x.startswith("#")
+                )
         except OSError:
             continue
     return {}
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     """Dump configured devices and sensors."""
     logging.basicConfig(level=logging.INFO)
     credentials = read_credentials()
     session = Session(**credentials)
     session.update()
-    print('Devices\n'
-          '-------')
+    print("Devices\n" "-------")
     for device in session.devices:
         print(device)
         for item in device.items:
-            print('- {}'.format(item))
+            print("- {}".format(item))
