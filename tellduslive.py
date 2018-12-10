@@ -235,6 +235,7 @@ class Session:
                     private_key,
                     token,
                     token_secret]) or
+               all([public_key, private_key]) or
                all([host, token])):
             raise ValueError('Missing configuration')
 
