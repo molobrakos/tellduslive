@@ -158,6 +158,7 @@ class LocalAPISession(requests.Session):
         except OSError as e:
             _LOGGER.error('Failed to refresh access token: %s', e)
 
+    @property
     def authorized(self):
         """Return true if successfully authorized."""
         return self.access_token
