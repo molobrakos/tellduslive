@@ -94,9 +94,9 @@ def main():
         if not host:
             exit("Could not find local Tellstick Net or Tellstick ZNet")
         _LOGGER.debug("Found Tellstick at %s", host)
-        credentials.update(host = host)
-    elif args['-H']:
-        credentials.update(host = args['-H'])
+        credentials.update(host=host)
+    elif args["-H"]:
+        credentials.update(host=args["-H"])
 
     try:
         session = Session(**credentials)
@@ -105,7 +105,10 @@ def main():
 
     if not session.is_authorized:
         url = session.authorize_url
-        input("Please visit <%s> with a browser and authorize me, then press enter" % url)
+        input(
+            "Please visit <%s> with a browser and authorize me, then press enter"
+            % url
+        )
         session.authorize()
 
     if not session.update():

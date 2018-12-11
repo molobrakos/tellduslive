@@ -80,6 +80,7 @@ SUPPORTS_LOCAL_API = ["TellstickZnet", "TellstickNetV2"]
 
 DEFAULT_APPLICATION_NAME = "tellduslive"
 
+
 def supports_local_api(device):
     """Return true if the device supports local access."""
     return any(dev in device for dev in SUPPORTS_LOCAL_API)
