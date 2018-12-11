@@ -93,13 +93,6 @@ def main():
         credentials.update(host = host)
     elif args['-H']:
         credentials.update(host = args['-H'])
-        
-    def callback(device):
-        _LOGGER.info('Got asynchronous sensor update for %s', device.name)
-        list_devices()
-        
-    credentials.update(listen=args['-r'],
-                       callback=callback)
 
     try:
         session = Session(**credentials)
@@ -135,7 +128,7 @@ def main():
     if args['list']:
         while True:
             list_devices()
-            
+
             if not args['-r']:
                 exit(0)
 
