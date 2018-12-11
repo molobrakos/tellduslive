@@ -236,7 +236,8 @@ class Session:
                     private_key,
                     token,
                     token_secret]) or
-               all([host, token])):
+               all([host, token]) or
+               host):
             raise ValueError('Missing configuration')
 
         self._state = {}
