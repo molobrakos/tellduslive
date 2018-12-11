@@ -99,6 +99,11 @@ def main():
     except ValueError as e:
         exit(e)
 
+    if not session.is_authorized:
+        url = session.authorize_url
+        input("Please visit <%s> with a browser and authorize me, then press enter" % url)
+        session.authorize()
+
     if not session.update():
         exit('Could not update status from server')
 
