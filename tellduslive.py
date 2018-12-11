@@ -84,6 +84,7 @@ BATTERY_OK = 253
 
 SUPPORTS_LOCAL_API = ['TellstickZnet', 'TellstickNetV2']
 
+DEFAULT_APPLICATION_NAME = "tellduslive"
 
 def supports_local_api(device):
     """Return true if the device supports local access."""
@@ -98,7 +99,7 @@ class LocalAPISession(requests.Session):
         super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
-        self._application = application
+        self._application = application or DEFAULT_APPLICATION_NAME
         self.request_token = None
         self.token_timestamp = None
         self.access_token = access_token
@@ -228,7 +229,7 @@ class Session:
                  token_secret=None,
                  host=None,
                  application=None):
-        
+
         _LOGGER.info('%s version %s', __name__, __version__)
 
         if not(all([public_key,
@@ -513,7 +514,7 @@ class Device:
         return next((item for item in self.items
                      if (item.name == name and
                          int(item.scale) == int(scale))), None)
-    
+
     def value(self, name, scale):
         """Return value of sensor item."""
         return self.item(name, scale).value
