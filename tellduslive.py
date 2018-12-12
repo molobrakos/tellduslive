@@ -78,6 +78,8 @@ BATTERY_OK = 253
 
 SUPPORTS_LOCAL_API = ["TellstickZnet", "TellstickNetV2"]
 
+DEFAULT_APPLICATION_NAME = "tellduslive"
+
 
 def supports_local_api(device):
     """Return true if the device supports local access."""
@@ -91,7 +93,7 @@ class LocalAPISession(requests.Session):
         super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
-        self._application = application
+        self._application = application or DEFAULT_APPLICATION_NAME
         self.request_token = None
         self.token_timestamp = None
         self.access_token = access_token
@@ -155,6 +157,7 @@ class LocalAPISession(requests.Session):
         except OSError as e:
             _LOGGER.error("Failed to refresh access token: %s", e)
 
+    @property
     def authorized(self):
         """Return true if successfully authorized."""
         return self.access_token
@@ -239,6 +242,7 @@ class Session:
             all([public_key, private_key, token, token_secret])
             or all([public_key, private_key])
             or all([host, token])
+            or host
         ):
             raise ValueError("Missing configuration")
 
