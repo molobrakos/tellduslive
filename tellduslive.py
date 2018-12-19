@@ -93,6 +93,7 @@ class LocalAPISession(requests.Session):
         super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
+        self._hub_id = None
         self._application = application or DEFAULT_APPLICATION_NAME
         self.request_token = None
         self.token_timestamp = None
@@ -103,7 +104,7 @@ class LocalAPISession(requests.Session):
             )
             self.refresh_access_token()
 
-     def discovery_info(self):
+    def discovery_info(self):
         """Retrive information from discovery socket."""
         import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -115,9 +116,14 @@ class LocalAPISession(requests.Session):
         # expecting product, mac, activation code, version
         if len(entry) != 4:
             return []
-        ret = [{'ip': address, 'type': entry[0], 'id': entry[1], 'version': entry[3]}]
-        _LOGGER.warning("%s",ret)
+        ret = [{'name': address, 'type': entry[0], 'id': entry[1], 'version': entry[3]}]
+        _LOGGER.debug("Discovered hub: %s",ret)
+        self._hub_id = entry[1]
         return ret
+
+    @property
+    def hub_id(self):
+        return self._hub_id
 
     @property
     def authorize_url(self):
@@ -204,6 +210,10 @@ class LiveAPISession(OAuth1Session):
         self.access_token_secret = None
         if application:
             self.headers.update({"X-Application": application})
+
+    @property
+    def hub_id(self):
+        pass
 
     @property
     def authorize_url(self):
@@ -379,7 +389,10 @@ class Session:
     def request_info(self, device_id):
         """Request device info."""
         res = self._request("device/info", id=device_id)
-        return res if res else None
+        if res and 'client' not in res:
+            res['client'] = self._session.hub_id
+            return res
+        return None
 
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
