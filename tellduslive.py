@@ -11,7 +11,7 @@ from threading import RLock
 
 sys.version_info >= (3, 0) or exit("Python 3 required")
 
-__version__ = "0.10.8"
+__version__ = "0.10.9"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,6 +102,22 @@ class LocalAPISession(requests.Session):
                 {"Authorization": "Bearer {}".format(self.access_token)}
             )
             self.refresh_access_token()
+
+     def discovery_info(self):
+        """Retrive information from discovery socket."""
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1)
+        sock.sendto(b'D', (self._host, 30303))
+        data, (address, _) = sock.recvfrom(1024)
+        _LOGGER.error("%s", data)
+        entry = data.decode("ascii").split(":")
+        # expecting product, mac, activation code, version
+        if len(entry) != 4:
+            return []
+        ret = [{'ip': address, 'type': entry[0], 'id': entry[1], 'version': entry[3]}]
+        _LOGGER.warning("%s",ret)
+        return ret
 
     @property
     def authorize_url(self):
@@ -255,6 +271,7 @@ class Session:
                 public_key, private_key, token, token_secret, application
             )
         )
+        self._isLocal = True if host else False
 
     @property
     def authorize_url(self):
@@ -366,8 +383,10 @@ class Session:
 
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
+        if self._isLocal:
+            return self._session.discovery_info()
         res = self._request("clients/list")
-        return res.get("client") if res else None
+        return res.get("client") if res else []
 
     def device(self, device_id):
         """Return a device object."""
