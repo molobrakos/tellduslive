@@ -103,15 +103,19 @@ class LocalAPISession(requests.Session):
                 {"Authorization": "Bearer {}".format(self.access_token)}
             )
             self.refresh_access_token()
+        self.mount('http://', requests.adapters.HTTPAdapter(pool_block=True))
 
     def discovery_info(self):
         """Retrive information from discovery socket."""
         import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.settimeout(1)
-        sock.sendto(b'D', (self._host, 30303))
-        data, (address, _) = sock.recvfrom(1024)
-        _LOGGER.error("%s", data)
+        try:
+            sock.sendto(b'D', (self._host, 30303))
+            data, (address, _) = sock.recvfrom(1024)
+        except socket.timeout:
+            _LOGGER.warning("Socket timeout trying to read info from Tellstick")
+            return []
         entry = data.decode("ascii").split(":")
         # expecting product, mac, activation code, version
         if len(entry) != 4:
@@ -210,6 +214,7 @@ class LiveAPISession(OAuth1Session):
         self.access_token_secret = None
         if application:
             self.headers.update({"X-Application": application})
+        self.mount('https://', requests.adapters.HTTPAdapter(pool_block=True))
 
     @property
     def hub_id(self):
@@ -389,10 +394,12 @@ class Session:
     def request_info(self, device_id):
         """Request device info."""
         res = self._request("device/info", id=device_id)
-        if res and 'client' not in res:
-            res['client'] = self._session.hub_id
-            return res
-        return None
+        return res if res else None
+
+    @property
+    def hub_id(self):
+        """Return hub id."""
+        return self._session.hub_id
 
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
@@ -529,8 +536,12 @@ class Device:
     def info(self):
         """Retrive device info."""
         if self.is_sensor:
-            return self.device
-        return self._session.request_info(self.device_id)
+            res = self.device
+        else:
+            res = self._session.request_info(self.device_id)
+        if res and 'client' not in res:
+            res['client'] = self._session.hub_id
+        return res if res else None
 
     def turn_on(self):
         """Turn device on."""
