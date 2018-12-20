@@ -103,7 +103,6 @@ class LocalAPISession(requests.Session):
                 {"Authorization": "Bearer {}".format(self.access_token)}
             )
             self.refresh_access_token()
-        self.mount('http://', requests.adapters.HTTPAdapter(pool_block=True))
 
     def discovery_info(self):
         """Retrive information from discovery socket."""
@@ -214,7 +213,6 @@ class LiveAPISession(OAuth1Session):
         self.access_token_secret = None
         if application:
             self.headers.update({"X-Application": application})
-        self.mount('https://', requests.adapters.HTTPAdapter(pool_block=True))
 
     @property
     def hub_id(self):
