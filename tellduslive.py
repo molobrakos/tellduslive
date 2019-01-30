@@ -328,29 +328,24 @@ class Session:
 
     def update(self):
         """Updates all devices and sensors from server."""
-        new_state = {}
-
         def collect(devices, is_sensor=False):
             """Update local state.
             N.B. We prefix sensors with '_', since apparently sensors
             and devices do not share name space and there can be
             collissions.
             FIXME: Remove this hack."""
-            new_state.update(
-                {
-                    "_" * is_sensor + str(device["id"]): device
-                    for device in devices or {}
-                    if device["name"]
-                    and not (is_sensor and "data" not in device)
-                }
-            )
+            return {
+                "_" * is_sensor + str(device["id"]): device
+                for device in devices or {}
+                if device["name"] and not (is_sensor and "data" not in device)
+            }
 
         devices = self._request_devices()
-        collect(devices)
-
         sensors = self._request_sensors()
-        collect(sensors, True)
+        new_state = collect(devices)
+        new_state.update(collect(sensors, True))
         self._state = new_state
+
         return devices is not None and sensors is not None
 
     def request_info(self, device_id):
