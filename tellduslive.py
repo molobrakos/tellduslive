@@ -282,8 +282,7 @@ class Session:
 
     def _device(self, device_id):
         """Return the raw representaion of a device."""
-        with self._lock:
-            return self._state.get(device_id)
+        return self._state.get(device_id)
 
     def _request(self, path, **params):
         """Send a request to the Tellstick Live API."""
@@ -310,9 +309,8 @@ class Session:
 
     def execute(self, method, **params):
         """Make request, check result if successful."""
-        with self._lock:
-            response = self._request(method, **params)
-            return response and response.get("status") == "success"
+        response = self._request(method, **params)
+        return response and response.get("status") == "success"
 
     def _request_devices(self):
         """Request list of devices from server."""
@@ -334,7 +332,7 @@ class Session:
         """Updates all devices and sensors from server."""
         with self._lock:
 
-            self._state = {}
+            new_state = {}
 
             def collect(devices, is_sensor=False):
                 """Update local state.
@@ -342,7 +340,7 @@ class Session:
                 and devices do not share name space and there can be
                 collissions.
                 FIXME: Remove this hack."""
-                self._state.update(
+                new_state.update(
                     {
                         "_" * is_sensor + str(device["id"]): device
                         for device in devices or {}
@@ -356,7 +354,7 @@ class Session:
 
             sensors = self._request_sensors()
             collect(sensors, True)
-
+            self._state = new_state
             return devices is not None and sensors is not None
 
     def request_info(self, device_id):
@@ -387,8 +385,7 @@ class Session:
     @property
     def device_ids(self):
         """List of known device ids."""
-        with self._lock:
-            return self._state.keys()
+        return self._state.keys()
 
 
 class Device:
