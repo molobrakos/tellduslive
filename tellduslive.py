@@ -7,7 +7,6 @@ import sys
 import requests
 from requests.compat import urljoin
 from requests_oauthlib import OAuth1Session
-from threading import RLock
 
 sys.version_info >= (3, 0) or exit("Python 3 required")
 
@@ -247,7 +246,6 @@ class Session:
             raise ValueError("Missing configuration")
 
         self._state = {}
-        self._lock = RLock()
         self._session = (
             LocalAPISession(host, application, token)
             if host
@@ -330,32 +328,30 @@ class Session:
 
     def update(self):
         """Updates all devices and sensors from server."""
-        with self._lock:
+        new_state = {}
 
-            new_state = {}
+        def collect(devices, is_sensor=False):
+            """Update local state.
+            N.B. We prefix sensors with '_', since apparently sensors
+            and devices do not share name space and there can be
+            collissions.
+            FIXME: Remove this hack."""
+            new_state.update(
+                {
+                    "_" * is_sensor + str(device["id"]): device
+                    for device in devices or {}
+                    if device["name"]
+                    and not (is_sensor and "data" not in device)
+                }
+            )
 
-            def collect(devices, is_sensor=False):
-                """Update local state.
-                N.B. We prefix sensors with '_', since apparently sensors
-                and devices do not share name space and there can be
-                collissions.
-                FIXME: Remove this hack."""
-                new_state.update(
-                    {
-                        "_" * is_sensor + str(device["id"]): device
-                        for device in devices or {}
-                        if device["name"]
-                        and not (is_sensor and "data" not in device)
-                    }
-                )
+        devices = self._request_devices()
+        collect(devices)
 
-            devices = self._request_devices()
-            collect(devices)
-
-            sensors = self._request_sensors()
-            collect(sensors, True)
-            self._state = new_state
-            return devices is not None and sensors is not None
+        sensors = self._request_sensors()
+        collect(sensors, True)
+        self._state = new_state
+        return devices is not None and sensors is not None
 
     def request_info(self, device_id):
         """Request device info."""
