@@ -10,7 +10,7 @@ from requests_oauthlib import OAuth1Session
 
 sys.version_info >= (3, 0) or exit("Python 3 required")
 
-__version__ = "0.10.8"
+__version__ = "0.10.9"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +92,7 @@ class LocalAPISession(requests.Session):
         super().__init__()
         self.url = TELLDUS_LOCAL_API_URL.format(host=host)
         self._host = host
+        self._hub_id = None
         self._application = application or DEFAULT_APPLICATION_NAME
         self.request_token = None
         self.token_timestamp = None
@@ -101,6 +102,30 @@ class LocalAPISession(requests.Session):
                 {"Authorization": "Bearer {}".format(self.access_token)}
             )
             self.refresh_access_token()
+
+    def discovery_info(self):
+        """Retrive information from discovery socket."""
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1)
+        try:
+            sock.sendto(b'D', (self._host, 30303))
+            data, (address, _) = sock.recvfrom(1024)
+        except socket.timeout:
+            _LOGGER.warning("Socket timeout trying to read info from Tellstick")
+            return []
+        entry = data.decode("ascii").split(":")
+        # expecting product, mac, activation code, version
+        if len(entry) != 4:
+            return []
+        ret = [{'name': address, 'type': entry[0], 'id': entry[1], 'version': entry[3]}]
+        _LOGGER.debug("Discovered hub: %s",ret)
+        self._hub_id = entry[1]
+        return ret
+
+    @property
+    def hub_id(self):
+        return self._hub_id
 
     @property
     def authorize_url(self):
@@ -189,6 +214,10 @@ class LiveAPISession(OAuth1Session):
             self.headers.update({"X-Application": application})
 
     @property
+    def hub_id(self):
+        pass
+
+    @property
     def authorize_url(self):
         """Retrieve URL for authorization."""
         _LOGGER.debug("Fetching request token")
@@ -253,6 +282,7 @@ class Session:
                 public_key, private_key, token, token_secret, application
             )
         )
+        self._isLocal = True if host else False
 
     @property
     def authorize_url(self):
@@ -353,10 +383,17 @@ class Session:
         res = self._request("device/info", id=device_id)
         return res if res else None
 
+    @property
+    def hub_id(self):
+        """Return hub id."""
+        return self._session.hub_id
+
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
+        if self._isLocal:
+            return self._session.discovery_info()
         res = self._request("clients/list")
-        return res.get("client") if res else None
+        return res.get("client") if res else []
 
     def device(self, device_id):
         """Return a device object."""
@@ -485,8 +522,12 @@ class Device:
     def info(self):
         """Retrive device info."""
         if self.is_sensor:
-            return self.device
-        return self._session.request_info(self.device_id)
+            res = self.device
+        else:
+            res = self._session.request_info(self.device_id)
+        if res and 'client' not in res:
+            res['client'] = self._session.hub_id
+        return res if res else None
 
     def turn_on(self):
         """Turn device on."""
