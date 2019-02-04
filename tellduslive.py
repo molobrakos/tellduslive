@@ -106,20 +106,30 @@ class LocalAPISession(requests.Session):
     def discovery_info(self):
         """Retrive information from discovery socket."""
         import socket
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.settimeout(1)
         try:
-            sock.sendto(b'D', (self._host, 30303))
+            sock.sendto(b"D", (self._host, 30303))
             data, (address, _) = sock.recvfrom(1024)
         except socket.timeout:
-            _LOGGER.warning("Socket timeout trying to read info from Tellstick")
+            _LOGGER.warning(
+                "Socket timeout trying to read info from Tellstick"
+            )
             return []
         entry = data.decode("ascii").split(":")
         # expecting product, mac, activation code, version
         if len(entry) != 4:
             return []
-        ret = [{'name': address, 'type': entry[0], 'id': entry[1], 'version': entry[3]}]
-        _LOGGER.debug("Discovered hub: %s",ret)
+        ret = [
+            {
+                "name": address,
+                "type": entry[0],
+                "id": entry[1],
+                "version": entry[3],
+            }
+        ]
+        _LOGGER.debug("Discovered hub: %s", ret)
         self._hub_id = entry[1]
         return ret
 
@@ -358,6 +368,7 @@ class Session:
 
     def update(self):
         """Updates all devices and sensors from server."""
+
         def collect(devices, is_sensor=False):
             """Update local state.
             N.B. We prefix sensors with '_', since apparently sensors
@@ -525,8 +536,8 @@ class Device:
             res = self.device
         else:
             res = self._session.request_info(self.device_id)
-        if res and 'client' not in res:
-            res['client'] = self._session.hub_id
+        if res and "client" not in res:
+            res["client"] = self._session.hub_id
         return res if res else None
 
     def turn_on(self):
