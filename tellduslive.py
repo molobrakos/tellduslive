@@ -10,7 +10,7 @@ from requests_oauthlib import OAuth1Session
 
 sys.version_info >= (3, 0) or exit("Python 3 required")
 
-__version__ = "0.10.9"
+__version__ = "0.10.10"
 
 _LOGGER = logging.getLogger(__name__)
 
