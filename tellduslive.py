@@ -261,6 +261,10 @@ class LiveAPISession(OAuth1Session):
         """Refresh access_token if expired."""
         pass
 
+    def discovery_info(self):
+        """Dummy. FIXME (lint complaining)."""
+        pass
+
 
 class Session:
     """Tellduslive session."""
