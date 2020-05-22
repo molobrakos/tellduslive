@@ -113,22 +113,13 @@ class LocalAPISession(requests.Session):
             sock.sendto(b"D", (self._host, 30303))
             data, (address, _) = sock.recvfrom(1024)
         except socket.timeout:
-            _LOGGER.warning(
-                "Socket timeout trying to read info from Tellstick"
-            )
+            _LOGGER.warning("Socket timeout trying to read info from Tellstick")
             return []
         entry = data.decode("ascii").split(":")
         # expecting product, mac, activation code, version
         if len(entry) != 4:
             return []
-        ret = [
-            {
-                "name": address,
-                "type": entry[0],
-                "id": entry[1],
-                "version": entry[3],
-            }
-        ]
+        ret = [{"name": address, "type": entry[0], "id": entry[1], "version": entry[3]}]
         _LOGGER.debug("Discovered hub: %s", ret)
         self._hub_id = entry[1]
         return ret
@@ -178,9 +169,7 @@ class LocalAPISession(requests.Session):
     def refresh_access_token(self):
         """Refresh api token"""
         try:
-            response = self.get(
-                TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host)
-            )
+            response = self.get(TELLDUS_LOCAL_REFRESH_TOKEN_URL.format(host=self._host))
             response.raise_for_status()
             result = response.json()
             self.access_token = result.get("token")
@@ -209,12 +198,7 @@ class LiveAPISession(OAuth1Session):
 
     # pylint: disable=too-many-arguments
     def __init__(
-        self,
-        public_key,
-        private_key,
-        token=None,
-        token_secret=None,
-        application=None,
+        self, public_key, private_key, token=None, token_secret=None, application=None
     ):
         super().__init__(public_key, private_key, token, token_secret)
         self.url = TELLDUS_LIVE_API_URL
@@ -328,9 +312,7 @@ class Session:
             self._session.maybe_refresh_token()
             url = urljoin(self._session.url, path)
             _LOGGER.debug("Request %s %s", url, params)
-            response = self._session.get(
-                url, params=params, timeout=TIMEOUT.seconds
-            )
+            response = self._session.get(url, params=params, timeout=TIMEOUT.seconds)
             response.raise_for_status()
             _LOGGER.debug(
                 "Response %s %s %s",
@@ -353,9 +335,7 @@ class Session:
     def _request_devices(self):
         """Request list of devices from server."""
         res = self._request(
-            "devices/list",
-            supportedMethods=SUPPORTED_METHODS,
-            includeIgnored=0,
+            "devices/list", supportedMethods=SUPPORTED_METHODS, includeIgnored=0
         )
         return res.get("device") if res else None
 
@@ -438,9 +418,7 @@ class Device:
         if self.is_sensor:
             items = ", ".join(str(item) for item in self.items)
             return "Sensor #{id:>9} {name:<20} ({items})".format(
-                id=self.device_id,
-                name=self.name or UNNAMED_DEVICE,
-                items=items,
+                id=self.device_id, name=self.name or UNNAMED_DEVICE, items=items
             )
         else:
             return (
