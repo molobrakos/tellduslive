@@ -294,7 +294,6 @@ class Session:
                 public_key, private_key, token, token_secret, application
             )
         )
-        self._isLocal = True if host else False
 
     @property
     def authorize_url(self):
@@ -403,7 +402,7 @@ class Session:
 
     def get_clients(self):
         """Request list of clients (Telldus devices) from server."""
-        if self._isLocal:
+        if isinstance(self._session, LocalAPISession):
             return self._session.discovery_info()
         res = self._request("clients/list")
         return res.get("client") if res else []
