@@ -18,7 +18,7 @@ clean:
 
 pypi:
 	rm -f dist/*.tar.gz
-	python setup.py sdist
+	python3 setup.py sdist
 	twine upload dist/*.tar.gz
 
 release:
