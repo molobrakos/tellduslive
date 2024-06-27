@@ -7,7 +7,6 @@ setup(
     version="0.10.11",
     description="Communicate with Telldus Live",
     url="https://github.com/molobrakos/tellduslive",
-    license="",
     author="Erik",
     author_email="error.errorsson@gmail.com",
     install_requires=["requests", "requests_oauthlib"],
@@ -15,4 +14,7 @@ setup(
     provides=["tellduslive"],
     scripts=["tellduslive"],
     extras_require={"console": ["docopt"]},
+    classifiers=[
+        "License :: OSI Approved :: The Unlicense (Unlicense)"
+    ],
 )
